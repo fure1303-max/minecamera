@@ -3,7 +3,7 @@
   "id": "minecamera",
   "version": "${version}",
   "name": "MineCamera",
-  "description": "A Fabric camera mod for handheld and tripod-based in-game photography.",
+  "description": "A Fabric camera mod for Minecraft Java 1.21.11 with handheld and tripod photography.",
   "icon": "assets/minecamera/icon.png",
   "authors": [
     "fure1303-max"

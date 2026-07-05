@@ -1,0 +1,34 @@
+name: 功能建议
+description: 提交 MineCamera 的新功能想法或改进建议
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 你想要什么功能
+      placeholder: 用 1-3 句话说明需求
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 这个功能要解决什么问题
+      placeholder: 现在的缺口或痛点是什么
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你理想中的使用方式
+      placeholder: 玩家会怎么操作，这个功能看起来应该是什么样
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 额外补充
+      placeholder: 兼容性、参考模组、截图、视频等
+
