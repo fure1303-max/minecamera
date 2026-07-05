@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SPS",
+    "P P",
+    "SPS"
+  ],
+  "key": {
+    "S": "minecraft:stick",
+    "P": "minecraft:paper"
+  },
+  "result": {
+    "id": "minecamera:photo_display_frame",
+    "count": 1
+  }
+}

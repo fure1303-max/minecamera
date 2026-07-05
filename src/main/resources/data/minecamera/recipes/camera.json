@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "GIG",
+    "IDI",
+    " I "
+  ],
+  "key": {
+    "G": "minecraft:glass_pane",
+    "I": "minecraft:iron_ingot",
+    "D": "minecraft:diamond"
+  },
+  "result": {
+    "id": "minecamera:camera",
+    "count": 1
+  }
+}

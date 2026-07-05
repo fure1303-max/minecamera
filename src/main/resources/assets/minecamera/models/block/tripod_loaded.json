@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "minecamera:block/tripod_side_loaded",
+    "north": "minecamera:block/tripod_side_loaded",
+    "south": "minecamera:block/tripod_side_loaded",
+    "east": "minecamera:block/tripod_side_loaded",
+    "west": "minecamera:block/tripod_side_loaded",
+    "up": "minecamera:block/tripod_top_loaded",
+    "down": "minecamera:block/tripod_bottom"
+  }
+}

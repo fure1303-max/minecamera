@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "minecamera",
+  "version": "${version}",
+  "name": "MineCamera",
+  "description": "A Fabric camera mod for handheld and tripod-based in-game photography.",
+  "icon": "assets/minecamera/icon.png",
+  "authors": [
+    "FuRE1303"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.minecamera.MineCameraMod"
+    ],
+    "client": [
+      "com.minecamera.client.MineCameraClient"
+    ]
+  },
+  "mixins": [
+    "minecamera.client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": "0.19.3",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
