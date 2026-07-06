@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MineCameraRecipeResourcesTest {
 	@Test
 	void shipsCameraRecipe() throws IOException {
-		String json = resourceText("data/minecamera/recipes/camera.json");
+		String json = resourceText("data/minecamera/recipe/camera.json");
 		assertAll(
 			() -> assertTrue(json.contains("\"minecraft:diamond\"")),
 			() -> assertTrue(json.contains("\"minecraft:iron_ingot\"")),
@@ -24,7 +24,7 @@ class MineCameraRecipeResourcesTest {
 
 	@Test
 	void shipsTripodRecipe() throws IOException {
-		String json = resourceText("data/minecamera/recipes/tripod.json");
+		String json = resourceText("data/minecamera/recipe/tripod.json");
 		assertAll(
 			() -> assertTrue(json.contains("\"minecraft:stick\"")),
 			() -> assertTrue(json.contains("\"minecraft:iron_ingot\"")),
@@ -34,7 +34,7 @@ class MineCameraRecipeResourcesTest {
 
 	@Test
 	void shipsFilmRecipe() throws IOException {
-		String json = resourceText("data/minecamera/recipes/film.json");
+		String json = resourceText("data/minecamera/recipe/film.json");
 		assertAll(
 			() -> assertTrue(json.contains("\"minecraft:paper\"")),
 			() -> assertTrue(json.contains("\"minecraft:black_dye\"")),
@@ -45,7 +45,7 @@ class MineCameraRecipeResourcesTest {
 
 	@Test
 	void shipsPhotoDisplayFrameRecipe() throws IOException {
-		String json = resourceText("data/minecamera/recipes/photo_display_frame.json");
+		String json = resourceText("data/minecamera/recipe/photo_display_frame.json");
 		assertAll(
 			() -> assertTrue(json.contains("\"minecraft:stick\"")),
 			() -> assertTrue(json.contains("\"minecraft:paper\"")),
