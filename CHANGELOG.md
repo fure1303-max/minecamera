@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.1 - 2026-07-06
+
+修复发布后的配方加载问题。
+
+### Fixed
+- 修正 `Minecraft 1.21.11` 下 MineCamera 配方资源目录
+- 将配方文件从错误的 `data/minecamera/recipes/` 调整为正确的 `data/minecamera/recipe/`
+- 恢复原版工作台合成
+- 恢复 `JEI` 中的 MineCamera 配方显示
+- 补充对应资源测试，防止同类路径错误再次进入发布包
+
 ## v0.1.0 - 2026-07-05
 
 首个公开版本。
