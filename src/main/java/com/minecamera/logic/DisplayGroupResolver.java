@@ -12,41 +12,15 @@ public final class DisplayGroupResolver {
 	}
 
 	public static List<DisplayGroupLayout> partition(Set<GridPoint> occupied) {
-		List<GridPoint> ordered = occupied.stream()
-			.sorted(Comparator.comparingInt(GridPoint::y).thenComparingInt(GridPoint::x))
-			.toList();
 		Set<GridPoint> remaining = new HashSet<>(occupied);
 		List<DisplayGroupLayout> layouts = new ArrayList<>();
 
-		for (GridPoint start : ordered) {
-			if (!remaining.contains(start)) {
-				continue;
-			}
-
-			int width = 1;
-			while (remaining.contains(new GridPoint(start.x() + width, start.y()))) {
-				width++;
-			}
-
-			int height = 1;
-			boolean canGrow = true;
-			while (canGrow) {
-				for (int dx = 0; dx < width; dx++) {
-					if (!remaining.contains(new GridPoint(start.x() + dx, start.y() + height))) {
-						canGrow = false;
-						break;
-					}
-				}
-				if (canGrow) {
-					height++;
-				}
-			}
-
-			DisplayGroupLayout layout = new DisplayGroupLayout(start, width, height);
+		while (!remaining.isEmpty()) {
+			DisplayGroupLayout layout = largestRectangle(remaining);
 			layouts.add(layout);
-			for (int dy = 0; dy < height; dy++) {
-				for (int dx = 0; dx < width; dx++) {
-					remaining.remove(new GridPoint(start.x() + dx, start.y() + dy));
+			for (int dy = 0; dy < layout.height(); dy++) {
+				for (int dx = 0; dx < layout.width(); dx++) {
+					remaining.remove(new GridPoint(layout.anchor().x() + dx, layout.anchor().y() + dy));
 				}
 			}
 		}
@@ -56,5 +30,39 @@ public final class DisplayGroupResolver {
 
 	public static Optional<DisplayGroupLayout> findContainingLayout(Set<GridPoint> occupied, GridPoint clicked) {
 		return partition(occupied).stream().filter(layout -> layout.contains(clicked)).findFirst();
+	}
+
+	private static DisplayGroupLayout largestRectangle(Set<GridPoint> occupied) {
+		return occupied.stream()
+			.flatMap(anchor -> rectanglesFrom(anchor, occupied).stream())
+			.min(
+				Comparator.comparingInt(DisplayGroupResolver::area).reversed()
+					.thenComparing(Comparator.comparingInt(DisplayGroupLayout::width).reversed())
+					.thenComparingInt(layout -> layout.anchor().y())
+					.thenComparingInt(layout -> layout.anchor().x())
+			)
+			.orElseThrow();
+	}
+
+	private static List<DisplayGroupLayout> rectanglesFrom(GridPoint anchor, Set<GridPoint> occupied) {
+		List<DisplayGroupLayout> rectangles = new ArrayList<>();
+		int height = 0;
+		int width = Integer.MAX_VALUE;
+
+		while (occupied.contains(new GridPoint(anchor.x(), anchor.y() + height))) {
+			int rowWidth = 0;
+			while (occupied.contains(new GridPoint(anchor.x() + rowWidth, anchor.y() + height))) {
+				rowWidth++;
+			}
+			width = Math.min(width, rowWidth);
+			height++;
+			rectangles.add(new DisplayGroupLayout(anchor, width, height));
+		}
+
+		return rectangles;
+	}
+
+	private static int area(DisplayGroupLayout layout) {
+		return layout.width() * layout.height();
 	}
 }

@@ -1,20 +1,18 @@
 package com.minecamera.client.capture;
 
 import com.minecamera.client.camera.MineCameraModeController;
-import com.minecamera.film.CaptureSettings;
-import com.minecamera.film.FilmContentType;
-import com.minecamera.film.FilmRecord;
-import com.minecamera.film.FilmService;
 import com.minecamera.logic.CaptureCompletionGate;
 import com.minecamera.logic.CameraRigSnapshot;
+import com.minecamera.network.CommitPhotoCapturePayload;
+import com.minecamera.network.CommitPhotoCaptureResultPayload;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 
 public final class MineCameraCaptureCoordinator {
 	private static final ClientCaptureService CAPTURE_SERVICE = new ClientCaptureService();
 	private static MineCameraCaptureRequest pendingRequest;
+	private static CapturedPhoto pendingCommit;
 	private static boolean captureInProgress;
 
 	private MineCameraCaptureCoordinator() {
@@ -48,43 +46,59 @@ public final class MineCameraCaptureCoordinator {
 			request.snapshot(),
 			author,
 			request.snapshot().sourceType(),
-			path -> gate.run(() -> completeSuccess(client, request, author, path.getFileName().toString())),
+			photo -> gate.run(() -> commitCapture(client, request, author, photo)),
 			error -> gate.run(() -> completeFailure(error))
 		);
 	}
 
-	private static void completeSuccess(MinecraftClient client, MineCameraCaptureRequest request, String author, String fileName) {
-		captureInProgress = false;
-		PlayerEntity player = client.player;
-		if (player != null) {
-			CameraRigSnapshot snapshot = request.snapshot();
-			String mediaId = fileName.endsWith(".png") ? fileName.substring(0, fileName.length() - 4) : fileName;
-			ItemStack blankFilm = player.getInventory().getStack(request.filmSlot());
-			if (FilmService.isFilm(blankFilm) && FilmService.isBlank(blankFilm)) {
-				FilmRecord filmRecord = FilmRecord.exposed(
-					FilmContentType.PHOTO,
-					mediaId,
-					new CaptureSettings(
-						snapshot.captureWidth(),
-						snapshot.captureHeight(),
-						snapshot.focalLengthMm(),
-						snapshot.apertureFStop(),
-						snapshot.focusMode()
-					),
-					author,
-					System.currentTimeMillis() / 1000L,
-					snapshot.sourceType()
-				);
-				ItemStack exposedFilm = FilmService.createExposedFilm(blankFilm, filmRecord);
-				if (exposedFilm != blankFilm) {
-					player.getInventory().insertStack(exposedFilm);
-				}
-			}
+	private static void commitCapture(
+		MinecraftClient client,
+		MineCameraCaptureRequest request,
+		String author,
+		CapturedPhoto capturedPhoto
+	) {
+		if (!ClientPlayNetworking.canSend(CommitPhotoCapturePayload.ID)) {
+			ClientCaptureService.deleteCapture(client, capturedPhoto);
+			completeFailure("server_missing_capture_protocol");
+			return;
 		}
-		MineCameraModeController.onCaptureSucceeded(fileName);
+
+		CameraRigSnapshot snapshot = request.snapshot();
+		pendingCommit = capturedPhoto;
+		ClientPlayNetworking.send(new CommitPhotoCapturePayload(
+			request.filmSlot(),
+			capturedPhoto.mediaId(),
+			snapshot.captureWidth(),
+			snapshot.captureHeight(),
+			snapshot.focalLengthMm(),
+			snapshot.apertureFStop(),
+			snapshot.focusMode().name(),
+			author,
+			System.currentTimeMillis() / 1000L,
+			snapshot.sourceType(),
+			capturedPhoto.thumbnailBytes()
+		));
+	}
+
+	public static void onCommitResult(CommitPhotoCaptureResultPayload result) {
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (pendingCommit == null || !pendingCommit.mediaId().equals(result.mediaId())) {
+			return;
+		}
+
+		CapturedPhoto completed = pendingCommit;
+		pendingCommit = null;
+		captureInProgress = false;
+		if (result.success()) {
+			MineCameraModeController.onCaptureSucceeded(completed.path().getFileName().toString());
+		} else {
+			ClientCaptureService.deleteCapture(client, completed);
+			MineCameraModeController.onCaptureFailed(result.error());
+		}
 	}
 
 	private static void completeFailure(String error) {
+		pendingCommit = null;
 		captureInProgress = false;
 		MineCameraModeController.onCaptureFailed(error);
 	}

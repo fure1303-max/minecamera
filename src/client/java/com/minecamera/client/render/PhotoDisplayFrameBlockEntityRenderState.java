@@ -13,5 +13,9 @@ public final class PhotoDisplayFrameBlockEntityRenderState extends BlockEntityRe
 	public float v0;
 	public float u1;
 	public float v1;
+	public float leftInset;
+	public float topInset;
+	public float rightInset;
+	public float bottomInset;
 	public boolean hasTexture;
 }

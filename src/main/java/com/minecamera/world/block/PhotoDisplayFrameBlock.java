@@ -15,6 +15,7 @@ import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.enums.BlockFace;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemPlacementContext;
@@ -83,19 +84,15 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 
 	@Override
 	public @Nullable BlockState getPlacementState(ItemPlacementContext context) {
-		for (Direction direction : context.getPlacementDirections()) {
-			BlockFace blockFace = placementFace(direction);
-			if (blockFace == null) {
-				continue;
-			}
-
-			Direction horizontalFacing = blockFace == BlockFace.FLOOR ? context.getHorizontalPlayerFacing() : direction;
-			BlockState state = getDefaultState().with(BLOCK_FACE, blockFace).with(HORIZONTAL_FACING, horizontalFacing);
-			if (state.canPlaceAt(context.getWorld(), context.getBlockPos())) {
-				return state;
-			}
+		Direction clickedSide = context.getSide();
+		BlockFace blockFace = placementFace(clickedSide);
+		if (blockFace == null) {
+			return null;
 		}
-		return null;
+
+		Direction horizontalFacing = blockFace == BlockFace.FLOOR ? context.getHorizontalPlayerFacing() : clickedSide;
+		BlockState state = getDefaultState().with(BLOCK_FACE, blockFace).with(HORIZONTAL_FACING, horizontalFacing);
+		return state.canPlaceAt(context.getWorld(), context.getBlockPos()) ? state : null;
 	}
 
 	@Override
@@ -134,6 +131,14 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 			applyFilmToConnectedFrames(serverWorld, pos, filmRecord.mediaId());
 		}
 		return ActionResult.SUCCESS;
+	}
+
+	@Override
+	public void onPlaced(World world, BlockPos pos, BlockState state, LivingEntity placer, ItemStack itemStack) {
+		super.onPlaced(world, pos, state, placer, itemStack);
+		if (!world.isClient() && world instanceof ServerWorld serverWorld) {
+			repartitionConnectedFrames(serverWorld, pos, state);
+		}
 	}
 
 	@Override
@@ -182,21 +187,31 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 
 			Map<BlockPos, PhotoDisplayFrameBlockEntity> component = collectConnectedFrames(world, neighborPos, surface);
 			visited.addAll(component.keySet());
-			Map<GridPoint, DisplayFrameState> previous = new HashMap<>();
-			Set<GridPoint> occupied = new HashSet<>();
-
-			for (Map.Entry<BlockPos, PhotoDisplayFrameBlockEntity> entry : component.entrySet()) {
-				GridPoint point = surface.project(entry.getKey());
-				occupied.add(point);
-				DisplayFrameState state = entry.getValue().getDisplayState();
-				if (!state.isEmpty()) {
-					previous.put(point, state);
-				}
-			}
-
-			Map<GridPoint, DisplayFrameState> updated = DisplayFrameStateLogic.repartition(occupied, previous);
-			applyStates(component, updated);
+			repartitionComponent(surface, component);
 		}
+	}
+
+	private static void repartitionConnectedFrames(ServerWorld world, BlockPos start, BlockState state) {
+		DisplaySurface surface = DisplaySurface.from(state);
+		repartitionComponent(surface, collectConnectedFrames(world, start, surface));
+	}
+
+	private static void repartitionComponent(
+		DisplaySurface surface,
+		Map<BlockPos, PhotoDisplayFrameBlockEntity> component
+	) {
+		Map<GridPoint, DisplayFrameState> previous = new HashMap<>();
+		Set<GridPoint> occupied = new HashSet<>();
+		for (Map.Entry<BlockPos, PhotoDisplayFrameBlockEntity> entry : component.entrySet()) {
+			GridPoint point = surface.project(entry.getKey());
+			occupied.add(point);
+			DisplayFrameState state = entry.getValue().getDisplayState();
+			if (!state.isEmpty()) {
+				previous.put(point, state);
+			}
+		}
+
+		applyStates(component, DisplayFrameStateLogic.repartition(occupied, previous));
 	}
 
 	private static void applyStates(Map<BlockPos, PhotoDisplayFrameBlockEntity> frames, Map<GridPoint, DisplayFrameState> states) {

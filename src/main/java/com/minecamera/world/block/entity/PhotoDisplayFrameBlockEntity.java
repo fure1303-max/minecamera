@@ -6,11 +6,16 @@ import com.minecamera.registry.MineCameraBlockEntities;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.storage.ReadView;
 import net.minecraft.storage.WriteView;
 import net.minecraft.util.math.BlockPos;
+import org.jetbrains.annotations.Nullable;
 
 public final class PhotoDisplayFrameBlockEntity extends BlockEntity {
 	private DisplayFrameState displayState = DisplayFrameState.empty();
@@ -24,9 +29,15 @@ public final class PhotoDisplayFrameBlockEntity extends BlockEntity {
 	}
 
 	public void setDisplayState(DisplayFrameState displayState) {
-		this.displayState = displayState == null ? DisplayFrameState.empty() : displayState;
+		DisplayFrameState nextState = displayState == null ? DisplayFrameState.empty() : displayState;
+		if (nextState.equals(this.displayState)) {
+			return;
+		}
+		this.displayState = nextState;
 		markDirty();
-		if (world != null) {
+		if (world instanceof ServerWorld serverWorld) {
+			serverWorld.getChunkManager().markForUpdate(pos);
+		} else if (world != null) {
 			world.updateListeners(pos, getCachedState(), getCachedState(), Block.NOTIFY_LISTENERS);
 		}
 	}
@@ -46,5 +57,11 @@ public final class PhotoDisplayFrameBlockEntity extends BlockEntity {
 	@Override
 	public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup registries) {
 		return createNbt(registries);
+	}
+
+	@Nullable
+	@Override
+	public Packet<ClientPlayPacketListener> toUpdatePacket() {
+		return BlockEntityUpdateS2CPacket.create(this);
 	}
 }

@@ -1,5 +1,7 @@
 package com.minecamera.client.render;
 
+import com.minecamera.display.DisplayFrameRenderGeometry;
+import com.minecamera.display.DisplayFrameState;
 import com.minecamera.display.DisplaySurface;
 import com.minecamera.world.block.entity.PhotoDisplayFrameBlockEntity;
 import net.minecraft.client.MinecraftClient;
@@ -37,13 +39,19 @@ public final class PhotoDisplayFrameBlockEntityRenderer implements BlockEntityRe
 		BlockEntityRenderer.super.updateRenderState(blockEntity, state, tickProgress, cameraPos, crumblingOverlay);
 		state.hasTexture = false;
 		state.surface = DisplaySurface.from(blockEntity.getCachedState());
-		TEXTURE_CACHE.resolve(MinecraftClient.getInstance(), blockEntity.getDisplayState()).ifPresent(texture -> {
+		DisplayFrameState displayState = blockEntity.getDisplayState();
+		TEXTURE_CACHE.resolve(MinecraftClient.getInstance(), displayState).ifPresent(texture -> {
+			DisplayFrameRenderGeometry geometry = DisplayFrameRenderGeometry.forState(displayState);
 			state.textureId = texture.textureId();
 			state.renderLayer = texture.renderLayer();
 			state.u0 = texture.slice().u0();
 			state.v0 = texture.slice().v0();
 			state.u1 = texture.slice().u1();
 			state.v1 = texture.slice().v1();
+			state.leftInset = geometry.leftInset();
+			state.topInset = geometry.topInset();
+			state.rightInset = geometry.rightInset();
+			state.bottomInset = geometry.bottomInset();
 			state.hasTexture = true;
 		});
 	}
@@ -82,6 +90,17 @@ public final class PhotoDisplayFrameBlockEntityRenderer implements BlockEntityRe
 		float downX = down.getOffsetX();
 		float downY = down.getOffsetY();
 		float downZ = down.getOffsetZ();
+		originX += rightX * state.leftInset + downX * state.topInset;
+		originY += rightY * state.leftInset + downY * state.topInset;
+		originZ += rightZ * state.leftInset + downZ * state.topInset;
+		float width = 1.0F - state.leftInset - state.rightInset;
+		float height = 1.0F - state.topInset - state.bottomInset;
+		rightX *= width;
+		rightY *= width;
+		rightZ *= width;
+		downX *= height;
+		downY *= height;
+		downZ *= height;
 
 		vertex(vertices, entry, originX, originY, originZ, state.u0, state.v0, state.lightmapCoordinates, normal);
 		vertex(vertices, entry, originX + downX, originY + downY, originZ + downZ, state.u0, state.v1, state.lightmapCoordinates, normal);

@@ -1,5 +1,6 @@
 package com.minecamera.client.capture;
 
+import com.minecamera.client.media.DisplayThumbnailEncoder;
 import com.minecamera.logic.CaptureCompletionGate;
 import com.minecamera.logic.CameraRigSnapshot;
 import com.minecamera.media.MediaIndexStore;
@@ -27,7 +28,7 @@ public final class ClientCaptureService {
 		CameraRigSnapshot snapshot,
 		String author,
 		String captureSource,
-		Consumer<Path> onSuccess,
+		Consumer<CapturedPhoto> onSuccess,
 		Consumer<String> onFailure
 	) {
 		try {
@@ -58,8 +59,10 @@ public final class ClientCaptureService {
 				try {
 					writePng(nativeImage, finalPath);
 					writeIndex(root, mediaId, finalPath, snapshot.captureWidth(), snapshot.captureHeight(), author, captureSource);
-					completionGate.run(() -> onSuccess.accept(finalPath));
+					byte[] thumbnailBytes = DisplayThumbnailEncoder.encode(finalPath);
+					completionGate.run(() -> onSuccess.accept(new CapturedPhoto(mediaId, finalPath, thumbnailBytes)));
 				} catch (IOException exception) {
+					deleteCapture(root, new CapturedPhoto(mediaId, finalPath, new byte[0]));
 					completionGate.run(() -> onFailure.accept(exception.getMessage()));
 				} finally {
 					nativeImage.close();
@@ -68,6 +71,22 @@ public final class ClientCaptureService {
 			});
 		} catch (IOException exception) {
 			onFailure.accept(exception.getMessage());
+		}
+	}
+
+	public static void deleteCapture(MinecraftClient client, CapturedPhoto capturedPhoto) {
+		deleteCapture(MineCameraPaths.fromRunDirectory(client.runDirectory.toPath()).root(), capturedPhoto);
+	}
+
+	private static void deleteCapture(Path root, CapturedPhoto capturedPhoto) {
+		try {
+			Files.deleteIfExists(capturedPhoto.path());
+			MediaIndexStore store = new MediaIndexStore(root);
+			Map<String, StoredMediaEntry> entries = new LinkedHashMap<>(store.load());
+			if (entries.remove(capturedPhoto.mediaId()) != null) {
+				store.save(entries);
+			}
+		} catch (IOException ignored) {
 		}
 	}
 

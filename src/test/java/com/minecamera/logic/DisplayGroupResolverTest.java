@@ -44,6 +44,27 @@ final class DisplayGroupResolverTest {
 	}
 
 	@Test
+	void choosesTwoByTwoBeforeHorizontalRowsForFiveCellShape() {
+		Set<GridPoint> occupied = Set.of(
+			new GridPoint(0, 0),
+			new GridPoint(1, 0),
+			new GridPoint(2, 0),
+			new GridPoint(0, 1),
+			new GridPoint(1, 1)
+		);
+
+		List<DisplayGroupLayout> layouts = DisplayGroupResolver.partition(occupied);
+
+		assertEquals(
+			List.of(
+				new DisplayGroupLayout(new GridPoint(0, 0), 2, 2),
+				new DisplayGroupLayout(new GridPoint(2, 0), 1, 1)
+			),
+			layouts
+		);
+	}
+
+	@Test
 	void findsTheLayoutContainingTheClickedCell() {
 		Set<GridPoint> occupied = Set.of(
 			new GridPoint(2, 4),
