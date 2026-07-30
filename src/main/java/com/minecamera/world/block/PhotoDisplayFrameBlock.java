@@ -11,6 +11,7 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.BlockWithEntity;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
@@ -33,6 +34,8 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.World;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldView;
+import net.minecraft.world.tick.ScheduledTickView;
+import net.minecraft.util.math.random.Random;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -42,6 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 public final class PhotoDisplayFrameBlock extends BlockWithEntity implements BlockEntityProvider {
+	private static final int MAX_CONNECTED_FRAMES = 1_024;
 	public static final MapCodec<PhotoDisplayFrameBlock> CODEC = createCodec(PhotoDisplayFrameBlock::new);
 	public static final EnumProperty<BlockFace> BLOCK_FACE = Properties.BLOCK_FACE;
 	public static final EnumProperty<Direction> HORIZONTAL_FACING = Properties.HORIZONTAL_FACING;
@@ -100,6 +104,23 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 		BlockPos supportPos = supportPos(pos, state);
 		Direction supportSide = state.get(BLOCK_FACE) == BlockFace.FLOOR ? Direction.UP : state.get(HORIZONTAL_FACING);
 		return world.getBlockState(supportPos).isSideSolidFullSquare(world, supportPos, supportSide);
+	}
+
+	@Override
+	protected BlockState getStateForNeighborUpdate(
+		BlockState state,
+		WorldView world,
+		ScheduledTickView tickView,
+		BlockPos pos,
+		Direction direction,
+		BlockPos neighborPos,
+		BlockState neighborState,
+		Random random
+	) {
+		if (neighborPos.equals(supportPos(pos, state)) && !state.canPlaceAt(world, pos)) {
+			return Blocks.AIR.getDefaultState();
+		}
+		return super.getStateForNeighborUpdate(state, world, tickView, pos, direction, neighborPos, neighborState, random);
 	}
 
 	@Nullable
@@ -243,6 +264,9 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 			BlockEntity blockEntity = world.getBlockEntity(current);
 			if (blockEntity instanceof PhotoDisplayFrameBlockEntity frame) {
 				frames.put(current, frame);
+				if (frames.size() > MAX_CONNECTED_FRAMES) {
+					return Map.of();
+				}
 			}
 
 			for (Direction direction : surface.connectionDirections()) {

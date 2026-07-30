@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 
@@ -23,6 +24,7 @@ public final class ClientDisplayMediaSync {
 	private static final Set<String> pendingRequests = ConcurrentHashMap.newKeySet();
 	private static final Set<String> publishedMedia = ConcurrentHashMap.newKeySet();
 	private static final Map<String, Long> retryAfter = new ConcurrentHashMap<>();
+	private static final AtomicLong sessionGeneration = new AtomicLong();
 
 	private ClientDisplayMediaSync() {
 	}
@@ -71,21 +73,41 @@ public final class ClientDisplayMediaSync {
 			return;
 		}
 		publishedMedia.add(mediaId);
-		CompletableFuture.runAsync(() -> publishLocalMedia(client, mediaId));
+		long generation = sessionGeneration.get();
+		CompletableFuture.runAsync(() -> publishLocalMedia(client, mediaId, generation));
 	}
 
-	private static void publishLocalMedia(MinecraftClient client, String mediaId) {
+	public static void reset() {
+		sessionGeneration.incrementAndGet();
+		pendingRequests.clear();
+		publishedMedia.clear();
+		retryAfter.clear();
+	}
+
+	private static void publishLocalMedia(MinecraftClient client, String mediaId, long generation) {
 		try {
 			ResolvedMedia resolved = new LocalMediaCatalog(MineCameraPaths.fromRunDirectory(client.runDirectory.toPath()).root())
 				.find(mediaId)
 				.orElse(null);
 			if (resolved == null || !resolved.available()) {
-				publishedMedia.remove(mediaId);
+				releasePublished(mediaId, generation);
 				return;
 			}
 			byte[] bytes = DisplayThumbnailEncoder.encode(resolved.absolutePath());
-			client.execute(() -> ClientPlayNetworking.send(new PublishDisplayThumbnailPayload(mediaId, bytes)));
+			client.execute(() -> {
+				if (generation == sessionGeneration.get() && ClientPlayNetworking.canSend(PublishDisplayThumbnailPayload.ID)) {
+					ClientPlayNetworking.send(new PublishDisplayThumbnailPayload(mediaId, bytes));
+				} else {
+					releasePublished(mediaId, generation);
+				}
+			});
 		} catch (IOException exception) {
+			releasePublished(mediaId, generation);
+		}
+	}
+
+	private static void releasePublished(String mediaId, long generation) {
+		if (generation == sessionGeneration.get()) {
 			publishedMedia.remove(mediaId);
 		}
 	}

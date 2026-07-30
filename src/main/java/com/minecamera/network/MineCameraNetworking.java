@@ -23,6 +23,12 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public final class MineCameraNetworking {
+	private static final long THUMBNAIL_PLAYER_COOLDOWN_MILLIS = 100L;
+	private static final long THUMBNAIL_MEDIA_COOLDOWN_MILLIS = 2_000L;
+	private static final DisplayThumbnailRequestLimiter THUMBNAIL_REQUEST_LIMITER = new DisplayThumbnailRequestLimiter(
+		THUMBNAIL_PLAYER_COOLDOWN_MILLIS,
+		THUMBNAIL_MEDIA_COOLDOWN_MILLIS
+	);
 	private static final String ERROR_INVALID_CAPTURE = "invalid_capture";
 	private static final String ERROR_FILM_CHANGED = "film_changed";
 	private static final String ERROR_INVENTORY_FULL = "inventory_full";
@@ -153,6 +159,10 @@ public final class MineCameraNetworking {
 	}
 
 	private static void sendDisplayThumbnail(ServerPlayerEntity player, String mediaId) {
+		if (!DisplayThumbnailPolicy.isValidMediaId(mediaId)
+			|| !THUMBNAIL_REQUEST_LIMITER.tryAcquire(player.getUuid(), mediaId, System.currentTimeMillis())) {
+			return;
+		}
 		byte[] bytes = new byte[0];
 		try {
 			bytes = ServerDisplayMediaStore.fromServer(player.getEntityWorld().getServer()).read(mediaId).orElse(bytes);

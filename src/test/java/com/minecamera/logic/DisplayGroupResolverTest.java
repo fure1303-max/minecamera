@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,21 @@ final class DisplayGroupResolverTest {
 
 		assertEquals(1, layouts.size());
 		assertEquals(new DisplayGroupLayout(new GridPoint(0, 0), 2, 2), layouts.getFirst());
+	}
+
+	@Test
+	void groupsLargePerfectRectangleWithoutChangingItsLayout() {
+		Set<GridPoint> occupied = new HashSet<>();
+		for (int y = 0; y < 24; y++) {
+			for (int x = 0; x < 32; x++) {
+				occupied.add(new GridPoint(x, y));
+			}
+		}
+
+		assertEquals(
+			List.of(new DisplayGroupLayout(new GridPoint(0, 0), 32, 24)),
+			DisplayGroupResolver.partition(occupied)
+		);
 	}
 
 	@Test

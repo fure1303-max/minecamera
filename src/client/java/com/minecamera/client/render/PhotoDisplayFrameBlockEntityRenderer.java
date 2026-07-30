@@ -23,6 +23,10 @@ public final class PhotoDisplayFrameBlockEntityRenderer implements BlockEntityRe
 	public PhotoDisplayFrameBlockEntityRenderer(BlockEntityRendererFactory.Context context) {
 	}
 
+	public static void clearCaches() {
+		TEXTURE_CACHE.clear();
+	}
+
 	@Override
 	public PhotoDisplayFrameBlockEntityRenderState createRenderState() {
 		return new PhotoDisplayFrameBlockEntityRenderState();

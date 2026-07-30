@@ -20,7 +20,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.util.Util;
 
 final class MineCameraViewfinderService {
-	private static final RenderPipeline PREVIEW_PIPELINE = RenderPipelines.GUI_TEXTURED;
+	private static final RenderPipeline PREVIEW_PIPELINE = RenderPipelines.GUI_OPAQUE_TEX_BG;
 	private static final long REFRESH_INTERVAL_MS = 50L;
 
 	private final MineCameraOffscreenRenderService renderService = new MineCameraOffscreenRenderService();

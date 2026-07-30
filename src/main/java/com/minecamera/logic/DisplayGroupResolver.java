@@ -16,6 +16,11 @@ public final class DisplayGroupResolver {
 		List<DisplayGroupLayout> layouts = new ArrayList<>();
 
 		while (!remaining.isEmpty()) {
+			DisplayGroupLayout completeRectangle = completeBoundingRectangle(remaining);
+			if (completeRectangle != null) {
+				layouts.add(completeRectangle);
+				break;
+			}
 			DisplayGroupLayout layout = largestRectangle(remaining);
 			layouts.add(layout);
 			for (int dy = 0; dy < layout.height(); dy++) {
@@ -26,6 +31,25 @@ public final class DisplayGroupResolver {
 		}
 
 		return layouts;
+	}
+
+	private static DisplayGroupLayout completeBoundingRectangle(Set<GridPoint> occupied) {
+		int minX = Integer.MAX_VALUE;
+		int minY = Integer.MAX_VALUE;
+		int maxX = Integer.MIN_VALUE;
+		int maxY = Integer.MIN_VALUE;
+		for (GridPoint point : occupied) {
+			minX = Math.min(minX, point.x());
+			minY = Math.min(minY, point.y());
+			maxX = Math.max(maxX, point.x());
+			maxY = Math.max(maxY, point.y());
+		}
+
+		int width = maxX - minX + 1;
+		int height = maxY - minY + 1;
+		return (long) width * height == occupied.size()
+			? new DisplayGroupLayout(new GridPoint(minX, minY), width, height)
+			: null;
 	}
 
 	public static Optional<DisplayGroupLayout> findContainingLayout(Set<GridPoint> occupied, GridPoint clicked) {

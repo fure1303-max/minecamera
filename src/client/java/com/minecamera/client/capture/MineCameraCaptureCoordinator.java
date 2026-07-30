@@ -10,7 +10,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 
 public final class MineCameraCaptureCoordinator {
+	private static final long COMMIT_TIMEOUT_MILLIS = 15_000L;
 	private static final ClientCaptureService CAPTURE_SERVICE = new ClientCaptureService();
+	private static final CaptureCommitSession COMMIT_SESSION = new CaptureCommitSession(COMMIT_TIMEOUT_MILLIS);
 	private static MineCameraCaptureRequest pendingRequest;
 	private static CapturedPhoto pendingCommit;
 	private static boolean captureInProgress;
@@ -65,29 +67,36 @@ public final class MineCameraCaptureCoordinator {
 
 		CameraRigSnapshot snapshot = request.snapshot();
 		pendingCommit = capturedPhoto;
-		ClientPlayNetworking.send(new CommitPhotoCapturePayload(
-			request.filmSlot(),
-			capturedPhoto.mediaId(),
-			snapshot.captureWidth(),
-			snapshot.captureHeight(),
-			snapshot.focalLengthMm(),
-			snapshot.apertureFStop(),
-			snapshot.focusMode().name(),
-			author,
-			System.currentTimeMillis() / 1000L,
-			snapshot.sourceType(),
-			capturedPhoto.thumbnailBytes()
-		));
+		COMMIT_SESSION.begin(capturedPhoto.mediaId(), System.currentTimeMillis());
+		try {
+			ClientPlayNetworking.send(new CommitPhotoCapturePayload(
+				request.filmSlot(),
+				capturedPhoto.mediaId(),
+				snapshot.captureWidth(),
+				snapshot.captureHeight(),
+				snapshot.focalLengthMm(),
+				snapshot.apertureFStop(),
+				snapshot.focusMode().name(),
+				author,
+				System.currentTimeMillis() / 1000L,
+				snapshot.sourceType(),
+				capturedPhoto.thumbnailBytes()
+			));
+		} catch (RuntimeException exception) {
+			COMMIT_SESSION.reset();
+			completeFailure("capture_commit_send_failed");
+		}
 	}
 
 	public static void onCommitResult(CommitPhotoCaptureResultPayload result) {
 		MinecraftClient client = MinecraftClient.getInstance();
-		if (pendingCommit == null || !pendingCommit.mediaId().equals(result.mediaId())) {
+		if (pendingCommit == null || !COMMIT_SESSION.matches(result.mediaId())) {
 			return;
 		}
 
 		CapturedPhoto completed = pendingCommit;
 		pendingCommit = null;
+		COMMIT_SESSION.reset();
 		captureInProgress = false;
 		if (result.success()) {
 			MineCameraModeController.onCaptureSucceeded(completed.path().getFileName().toString());
@@ -97,8 +106,25 @@ public final class MineCameraCaptureCoordinator {
 		}
 	}
 
+	public static void tick(MinecraftClient client) {
+		if (pendingCommit == null || !COMMIT_SESSION.expire(System.currentTimeMillis())) {
+			return;
+		}
+		pendingCommit = null;
+		captureInProgress = false;
+		MineCameraModeController.onCaptureFailed("capture_commit_timeout");
+	}
+
+	public static void onDisconnected() {
+		pendingRequest = null;
+		pendingCommit = null;
+		captureInProgress = false;
+		COMMIT_SESSION.reset();
+	}
+
 	private static void completeFailure(String error) {
 		pendingCommit = null;
+		COMMIT_SESSION.reset();
 		captureInProgress = false;
 		MineCameraModeController.onCaptureFailed(error);
 	}

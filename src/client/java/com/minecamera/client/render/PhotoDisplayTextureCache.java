@@ -19,6 +19,10 @@ public final class PhotoDisplayTextureCache {
 		return photoTextureCache.resolve(client, state.mediaId()).map(texture -> toResolvedTexture(state, texture));
 	}
 
+	public void clear() {
+		renderLayerFactory.clear();
+	}
+
 	private ResolvedDisplayTexture toResolvedTexture(DisplayFrameState state, LoadedPhotoTexture texture) {
 		return new ResolvedDisplayTexture(
 			texture.textureId(),
