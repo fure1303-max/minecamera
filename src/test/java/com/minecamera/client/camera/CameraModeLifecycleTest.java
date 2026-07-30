@@ -27,7 +27,6 @@ final class CameraModeLifecycleTest {
 		assertEquals(CameraPreviewMode.LIVE, state.session().previewMode());
 		assertNull(state.tripodPos());
 		assertNull(state.latestCapturedMediaId());
-		assertFalse(state.previewFailureActive());
 	}
 
 	@Test
@@ -60,6 +59,5 @@ final class CameraModeLifecycleTest {
 		assertEquals("handheld", state.session().source());
 		assertNull(state.tripodPos());
 		assertEquals("idle", state.status().getString());
-		assertFalse(state.previewFailureActive());
 	}
 }

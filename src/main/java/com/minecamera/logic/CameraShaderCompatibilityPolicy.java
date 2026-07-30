@@ -16,10 +16,4 @@ public final class CameraShaderCompatibilityPolicy {
 	public static boolean shouldShowShaderHudIndicator(ShaderCompatibilityState state) {
 		return state == ShaderCompatibilityState.IRIS_SHADER_ACTIVE;
 	}
-
-	public static String previewFailureStatusKey(ShaderCompatibilityState state) {
-		return state == ShaderCompatibilityState.IRIS_SHADER_ACTIVE
-			? "status.shader_preview_incompatible"
-			: "status.preview_failed_keep_film";
-	}
 }

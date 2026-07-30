@@ -38,4 +38,13 @@ final class ResolutionValidatorTest {
 		assertEquals(2880, preset.width());
 		assertEquals(2880, preset.height());
 	}
+
+	@Test
+	void computesAValidUltraWidePresetWithinTheEdgeLimit() {
+		ResolutionPreset preset = ResolutionPresets.maxPreset("21:9", 21, 9);
+
+		assertEquals(4096, preset.width());
+		assertEquals(1755, preset.height());
+		assertTrue(ResolutionValidator.validate(preset.width(), preset.height(), ResolutionValidator.SOFT_EDGE_LIMIT).valid());
+	}
 }

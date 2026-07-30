@@ -4,6 +4,7 @@ import com.minecamera.client.camera.MineCameraModeController;
 import com.minecamera.client.capture.MineCameraCaptureCoordinator;
 import com.minecamera.client.capture.MineCameraCaptureRenderContext;
 import com.minecamera.logic.CameraRigSnapshot;
+import com.minecamera.logic.CameraProjectionMath;
 import com.minecamera.logic.CameraViewportOverridePolicy;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.Camera;
@@ -36,13 +37,26 @@ abstract class GameRendererMixin {
 	@Inject(method = "getFov", at = @At("HEAD"), cancellable = true)
 	private void minecamera$overrideOffscreenFov(Camera camera, float tickProgress, boolean changingFov, CallbackInfoReturnable<Float> cir) {
 		GameRenderer renderer = (GameRenderer) (Object) this;
+		CameraRigSnapshot offscreenSnapshot = MineCameraCaptureRenderContext.activeSnapshot();
+		CameraRigSnapshot sessionSnapshot = MineCameraModeController.currentWorldViewportSnapshot(renderer.getClient());
 		CameraRigSnapshot snapshot = CameraViewportOverridePolicy.selectSnapshot(
-			MineCameraCaptureRenderContext.activeSnapshot(),
-			MineCameraModeController.currentWorldViewportSnapshot(renderer.getClient())
+			offscreenSnapshot,
+			sessionSnapshot
 		);
-		if (snapshot != null) {
-			cir.setReturnValue(snapshot.verticalFovDegrees());
+		if (snapshot == null) {
+			return;
 		}
+		if (offscreenSnapshot != null) {
+			cir.setReturnValue(snapshot.verticalFovDegrees());
+			return;
+		}
+		cir.setReturnValue(CameraProjectionMath.framedViewportVerticalFovDegrees(
+			snapshot.verticalFovDegrees(),
+			renderer.getClient().getWindow().getFramebufferWidth(),
+			renderer.getClient().getWindow().getFramebufferHeight(),
+			snapshot.captureWidth(),
+			snapshot.captureHeight()
+		));
 	}
 
 	@Inject(
@@ -55,13 +69,12 @@ abstract class GameRendererMixin {
 	)
 	private void minecamera$captureBeforeHud(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
 		GameRenderer renderer = (GameRenderer) (Object) this;
-		MineCameraModeController.refreshViewfinderPreview(renderer.getClient(), tickCounter);
 		MineCameraCaptureCoordinator.capturePendingFrame(renderer.getClient(), tickCounter);
 	}
 
 	@Inject(method = "renderHand", at = @At("HEAD"), cancellable = true)
 	private void minecamera$suppressHandForOffscreenCapture(float tickProgress, boolean bobView, Matrix4f matrix, CallbackInfo ci) {
-		if (MineCameraCaptureRenderContext.shouldSuppressHandRendering()) {
+		if (MineCameraCaptureRenderContext.shouldSuppressHandRendering() || MineCameraModeController.isActive()) {
 			ci.cancel();
 		}
 	}

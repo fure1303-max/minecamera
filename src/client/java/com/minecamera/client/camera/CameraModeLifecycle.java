@@ -19,7 +19,6 @@ final class CameraModeLifecycle {
 			idleStatus,
 			emptyReviewState,
 			null,
-			false,
 			CameraOpticalState.defaults(defaultFocusDistance)
 		);
 	}
@@ -33,7 +32,6 @@ final class CameraModeLifecycle {
 			idleStatus,
 			emptyReviewState,
 			null,
-			false,
 			CameraOpticalState.defaults(defaultFocusDistance)
 		);
 	}
@@ -47,7 +45,6 @@ final class CameraModeLifecycle {
 			idleStatus,
 			emptyReviewState,
 			null,
-			false,
 			CameraOpticalState.defaults(defaultFocusDistance)
 		);
 	}

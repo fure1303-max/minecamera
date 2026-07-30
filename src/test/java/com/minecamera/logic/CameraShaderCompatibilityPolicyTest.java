@@ -41,20 +41,4 @@ final class CameraShaderCompatibilityPolicyTest {
 		assertFalse(CameraShaderCompatibilityPolicy.shouldShowShaderHudIndicator(ShaderCompatibilityState.IRIS_INSTALLED_NO_SHADER));
 		assertTrue(CameraShaderCompatibilityPolicy.shouldShowShaderHudIndicator(ShaderCompatibilityState.IRIS_SHADER_ACTIVE));
 	}
-
-	@Test
-	void usesShaderSpecificPreviewFailureStatusOnlyWhenShaderPackIsActive() {
-		assertEquals(
-			"status.preview_failed_keep_film",
-			CameraShaderCompatibilityPolicy.previewFailureStatusKey(ShaderCompatibilityState.NONE)
-		);
-		assertEquals(
-			"status.preview_failed_keep_film",
-			CameraShaderCompatibilityPolicy.previewFailureStatusKey(ShaderCompatibilityState.IRIS_INSTALLED_NO_SHADER)
-		);
-		assertEquals(
-			"status.shader_preview_incompatible",
-			CameraShaderCompatibilityPolicy.previewFailureStatusKey(ShaderCompatibilityState.IRIS_SHADER_ACTIVE)
-		);
-	}
 }

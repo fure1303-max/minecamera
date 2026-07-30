@@ -45,7 +45,6 @@ import org.lwjgl.glfw.GLFW;
 public final class MineCameraModeController {
 	private static final Identifier HUD_ID = MineCameraMod.id("camera_hud");
 	private static final ClientPhotoTextureCache PHOTO_TEXTURES = ClientPhotoTextureCache.getInstance();
-	private static final MineCameraViewfinderService VIEWFINDER = new MineCameraViewfinderService();
 	private static final CameraReviewService REVIEWS = new CameraReviewService(PHOTO_TEXTURES);
 	private static final CameraHudRenderer HUD = new CameraHudRenderer();
 	private static final TripodPoseSyncController TRIPOD_POSE_SYNC = new TripodPoseSyncController();
@@ -77,7 +76,6 @@ public final class MineCameraModeController {
 			return;
 		}
 		runtime = CameraModeLifecycle.openHandheld(hand, idleStatusText(), REVIEWS.emptyState(), DEFAULT_FOCUS_DISTANCE);
-		VIEWFINDER.clear(MinecraftClient.getInstance());
 		resetKeyLatches();
 		inputLatches = inputLatches.withCloseMouseDown(CameraModeInputLatchPolicy.closeLatchOnOpen(true));
 	}
@@ -91,7 +89,6 @@ public final class MineCameraModeController {
 			return;
 		}
 		runtime = CameraModeLifecycle.openTripod(hand, pos, idleStatusText(), REVIEWS.emptyState(), DEFAULT_FOCUS_DISTANCE);
-		VIEWFINDER.clear(MinecraftClient.getInstance());
 		resetKeyLatches();
 		inputLatches = inputLatches.withCloseMouseDown(CameraModeInputLatchPolicy.closeLatchOnOpen(true));
 		runtime = runtime.withOpticalState(TRIPOD_POSE_SYNC.initializeFromWorld(
@@ -127,38 +124,12 @@ public final class MineCameraModeController {
 	}
 
 	public static void onCaptureFailed(String error) {
-		runtime = runtime
-			.withPreviewFailureActive(false)
-			.withStatus(text("status.capture_failed_keep_film", displayError(error)));
-	}
-
-	public static void refreshViewfinderPreview(MinecraftClient client, RenderTickCounter tickCounter) {
-		if (!runtime.active() || runtime.session().previewMode() != CameraPreviewMode.LIVE) {
-			return;
-		}
-		CameraRigSnapshot snapshot = buildCurrentSnapshot(client);
-		if (snapshot == null) {
-			return;
-		}
-		ViewfinderRefreshResult result = VIEWFINDER.requestRefresh(client, tickCounter, snapshot);
-		if (result.failed()) {
-			runtime = runtime
-				.withPreviewFailureActive(true)
-				.withStatus(text(
-					CameraShaderCompatibilityPolicy.previewFailureStatusKey(currentShaderCompatibilityState()),
-					displayError(result.error())
-				));
-			return;
-		}
-		if (result.succeeded() && runtime.previewFailureActive()) {
-			runtime = runtime.withPreviewFailureActive(false).withStatus(idleStatusText());
-		}
+		runtime = runtime.withStatus(text("status.capture_failed_keep_film", displayError(error)));
 	}
 
 	public static CameraRigSnapshot currentWorldViewportSnapshot(MinecraftClient client) {
 		if (!CameraViewportOverridePolicy.shouldOverrideWorldViewport(
 			runtime.active(),
-			runtime.session().source(),
 			currentShaderCompatibilityState(),
 			IrisCompatBridge.isRenderingShadowPass()
 		)) {
@@ -337,7 +308,6 @@ public final class MineCameraModeController {
 			runtime.session(),
 			runtime.opticalState(),
 			runtime.reviewState(),
-			VIEWFINDER,
 			runtime.status(),
 			currentShaderCompatibilityState(),
 			CameraHudRenderer.countBlankFilms(client.player)
@@ -345,7 +315,6 @@ public final class MineCameraModeController {
 	}
 
 	private static void close() {
-		VIEWFINDER.clear(MinecraftClient.getInstance());
 		runtime = CameraModeLifecycle.closed(idleStatusText(), REVIEWS.emptyState(), DEFAULT_FOCUS_DISTANCE);
 		reopenGuardTicks = 2;
 		resetKeyLatches();
@@ -450,9 +419,16 @@ public final class MineCameraModeController {
 		CameraRigState rigState = buildCurrentRigState();
 		if (isTripodActive()) {
 			TripodBlockEntity tripod = getTripodBlockEntity(client);
-			float yaw = tripod != null && tripod.hasCameraPose() ? tripod.cameraYaw() : client.player.getYaw();
-			float pitch = tripod != null && tripod.hasCameraPose() ? tripod.cameraPitch() : client.player.getPitch();
-			return CameraPoseResolver.resolveTripod(rigState, yaw, pitch);
+			boolean hasStoredPose = tripod != null && tripod.hasCameraPose();
+			return CameraPoseResolver.resolveTripodViewport(
+				rigState,
+				runtime.session().previewMode(),
+				client.player.getYaw(),
+				client.player.getPitch(),
+				hasStoredPose,
+				hasStoredPose ? tripod.cameraYaw() : 0.0F,
+				hasStoredPose ? tripod.cameraPitch() : 0.0F
+			);
 		}
 		return CameraPoseResolver.resolveHandheld(rigState, client.player.getEyePos(), client.player.getYaw(), client.player.getPitch());
 	}

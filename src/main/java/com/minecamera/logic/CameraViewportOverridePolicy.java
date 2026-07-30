@@ -6,11 +6,10 @@ public final class CameraViewportOverridePolicy {
 
 	public static boolean shouldOverrideWorldViewport(
 		boolean cameraModeActive,
-		String sourceType,
 		ShaderCompatibilityState shaderState,
 		boolean renderingShadowPass
 	) {
-		if (!cameraModeActive || !"tripod".equals(sourceType)) {
+		if (!cameraModeActive) {
 			return false;
 		}
 		return shaderState != ShaderCompatibilityState.IRIS_SHADER_ACTIVE || !renderingShadowPass;

@@ -6,7 +6,6 @@ import com.minecamera.logic.CameraModeSession;
 import com.minecamera.logic.CameraOpticalState;
 import com.minecamera.logic.CameraPreviewMode;
 import com.minecamera.logic.CameraShaderCompatibilityPolicy;
-import com.minecamera.logic.CaptureFraming;
 import com.minecamera.logic.ReviewTextureDrawPlan;
 import com.minecamera.logic.ResolutionPreset;
 import com.minecamera.logic.ShaderCompatibilityState;
@@ -32,7 +31,6 @@ final class CameraHudRenderer {
 		CameraModeSession session,
 		CameraOpticalState opticalState,
 		CameraReviewState reviewState,
-		MineCameraViewfinderService viewfinder,
 		Text status,
 		ShaderCompatibilityState shaderState,
 		int blankFilmCount
@@ -46,29 +44,12 @@ final class CameraHudRenderer {
 		int frameWidth = layout.frameWidth();
 		int frameHeight = layout.frameHeight();
 
-		context.drawTextWithShadow(client.textRenderer, text("hud.title"), HUD_MARGIN_X, 10, 0xFFF4F6FA);
-		context.drawTextWithShadow(client.textRenderer, headerLineText(session, preset, opticalState, reviewState), HUD_MARGIN_X, 24, 0xFFF2D6A2);
-		drawShaderIndicator(context, client, screenWidth, shaderState);
-		context.drawTextWithShadow(client.textRenderer, controlHintText(session.previewMode()), HUD_MARGIN_X, screenHeight - 18, 0xFFE0E6EE);
-
 		drawOutsideMask(context, screenWidth, screenHeight, frameX, frameY, frameWidth, frameHeight);
-
 		int insetX = frameX + VIEWFINDER_PADDING;
 		int insetY = frameY + VIEWFINDER_PADDING;
 		int insetWidth = Math.max(1, frameWidth - (VIEWFINDER_PADDING * 2));
 		int insetHeight = Math.max(1, frameHeight - (VIEWFINDER_PADDING * 2));
-		if (session.previewMode() == CameraPreviewMode.LIVE) {
-			CaptureFraming.FrameRect livePreviewRect = CaptureFraming.viewfinderFor(insetWidth, insetHeight, preset.width(), preset.height());
-			drawLiveViewfinder(
-				context,
-				client,
-				viewfinder,
-				insetX + livePreviewRect.x(),
-				insetY + livePreviewRect.y(),
-				livePreviewRect.width(),
-				livePreviewRect.height()
-			);
-		} else {
+		if (session.previewMode() != CameraPreviewMode.LIVE) {
 			drawReviewPreview(context, client, reviewState, insetX, insetY, insetWidth, insetHeight);
 		}
 
@@ -77,6 +58,11 @@ final class CameraHudRenderer {
 		drawCorner(context, CameraHudCornerGeometry.topRight(frameX + frameWidth - 2, frameY, 10, 2));
 		drawCorner(context, CameraHudCornerGeometry.bottomLeft(frameX, frameY + frameHeight - 2, 10, 2));
 		drawCorner(context, CameraHudCornerGeometry.bottomRight(frameX + frameWidth - 2, frameY + frameHeight - 2, 10, 2));
+
+		context.drawTextWithShadow(client.textRenderer, text("hud.title"), HUD_MARGIN_X, 10, 0xFFF4F6FA);
+		context.drawTextWithShadow(client.textRenderer, headerLineText(session, preset, opticalState, reviewState), HUD_MARGIN_X, 24, 0xFFF2D6A2);
+		drawShaderIndicator(context, client, screenWidth, shaderState);
+		context.drawTextWithShadow(client.textRenderer, controlHintText(session.previewMode()), HUD_MARGIN_X, screenHeight - 18, 0xFFE0E6EE);
 
 		context.fill(
 			HUD_MARGIN_X,
@@ -153,27 +139,6 @@ final class CameraHudRenderer {
 		context.drawTextWithShadow(client.textRenderer, shaderText, screenWidth - HUD_MARGIN_X - textWidth, 10, 0xFFB4D2FF);
 	}
 
-	private static void drawLiveViewfinder(
-		DrawContext context,
-		MinecraftClient client,
-		MineCameraViewfinderService viewfinder,
-		int x,
-		int y,
-		int width,
-		int height
-	) {
-		viewfinder.drawPreview(context, x, y, width, height);
-		if (!viewfinder.hasPreview()) {
-			context.drawCenteredTextWithShadow(
-				client.textRenderer,
-				text("hud.loading"),
-				x + (width / 2),
-				y + (height / 2) - 4,
-				0xFFE7E2D8
-			);
-		}
-	}
-
 	private static void drawReviewPreview(DrawContext context, MinecraftClient client, CameraReviewState reviewState, int insetX, int insetY, int insetWidth, int insetHeight) {
 		context.fill(insetX, insetY, insetX + insetWidth, insetY + insetHeight, ViewfinderSurfacePalette.panelBackgroundColor());
 		CameraReviewFrameState frameState = reviewState.frameState();
@@ -215,7 +180,7 @@ final class CameraHudRenderer {
 	private static void drawOutsideMask(DrawContext context, int screenWidth, int screenHeight, int frameX, int frameY, int frameWidth, int frameHeight) {
 		int frameRight = frameX + frameWidth;
 		int frameBottom = frameY + frameHeight;
-		int maskColor = 0x5510151A;
+		int maskColor = 0xFF000000;
 		if (frameY > 0) {
 			context.fill(0, 0, screenWidth, frameY, maskColor);
 		}

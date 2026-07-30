@@ -60,8 +60,6 @@
   "screen.minecamera.status.saved": "Saved: %s",
   "screen.minecamera.status.capture_failed": "Capture failed: %s",
   "screen.minecamera.status.shader_enabled": "Shader pack active",
-  "screen.minecamera.status.shader_preview_incompatible": "Current shader is incompatible with offscreen preview: %s",
-  "screen.minecamera.status.preview_failed_keep_film": "Preview failed, current film was kept: %s",
   "screen.minecamera.status.capture_failed_keep_film": "Capture failed, film was not consumed: %s",
   "screen.minecamera.status.number_required": "Width and height must be numbers",
   "screen.minecamera.status.no_preview_film": "No exposed film to preview",
@@ -75,6 +73,5 @@
   "screen.minecamera.hud.controls.review": "A/D Films  R Live View  Right Click Close",
   "screen.minecamera.hud.helper.blank_film": "Blank film: %s",
   "screen.minecamera.hud.helper.final_crop": "The frame matches the final crop",
-  "screen.minecamera.hud.loading": "Loading viewfinder...",
   "screen.minecamera.hud.shader_active": "Shader Pack Active"
 }

@@ -36,6 +36,58 @@ final class CameraPoseResolverTest {
 	}
 
 	@Test
+	void usesCurrentPlayerAnglesForLiveTripodViewport() {
+		CameraRigState rigState = CameraRigState.tripod(
+			3840,
+			2160,
+			50,
+			2.8D,
+			FocusMode.AUTO,
+			8.0D,
+			new BlockPos(10, 64, -3)
+		);
+
+		CameraRigSnapshot snapshot = CameraPoseResolver.resolveTripodViewport(
+			rigState,
+			CameraPreviewMode.LIVE,
+			72.0F,
+			-18.0F,
+			true,
+			35.0F,
+			-12.0F
+		);
+
+		assertEquals(72.0F, snapshot.yaw());
+		assertEquals(-18.0F, snapshot.pitch());
+	}
+
+	@Test
+	void keepsStoredTripodAnglesDuringPhotoReview() {
+		CameraRigState rigState = CameraRigState.tripod(
+			3840,
+			2160,
+			50,
+			2.8D,
+			FocusMode.AUTO,
+			8.0D,
+			new BlockPos(10, 64, -3)
+		);
+
+		CameraRigSnapshot snapshot = CameraPoseResolver.resolveTripodViewport(
+			rigState,
+			CameraPreviewMode.REVIEW,
+			72.0F,
+			-18.0F,
+			true,
+			35.0F,
+			-12.0F
+		);
+
+		assertEquals(35.0F, snapshot.yaw());
+		assertEquals(-12.0F, snapshot.pitch());
+	}
+
+	@Test
 	void clampsPitchIntoTripodSafeRange() {
 		assertEquals(-85.0F, CameraPoseResolver.clampPitch(-200.0F));
 		assertEquals(40.0F, CameraPoseResolver.clampPitch(40.0F));

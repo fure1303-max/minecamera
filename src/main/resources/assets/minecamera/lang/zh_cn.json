@@ -60,8 +60,6 @@
   "screen.minecamera.status.saved": "已保存：%s",
   "screen.minecamera.status.capture_failed": "拍摄失败：%s",
   "screen.minecamera.status.shader_enabled": "光影已启用",
-  "screen.minecamera.status.shader_preview_incompatible": "当前光影与离屏取景不兼容：%s",
-  "screen.minecamera.status.preview_failed_keep_film": "取景失败，已保留当前胶卷：%s",
   "screen.minecamera.status.capture_failed_keep_film": "拍摄失败，未消耗胶卷：%s",
   "screen.minecamera.status.number_required": "宽度和高度必须是数字",
   "screen.minecamera.status.no_preview_film": "没有可预览的已曝光胶卷",
@@ -75,6 +73,5 @@
   "screen.minecamera.hud.controls.review": "A/D 切换胶卷  R 取景  右键 关闭",
   "screen.minecamera.hud.helper.blank_film": "空白胶卷：%s",
   "screen.minecamera.hud.helper.final_crop": "取景框即最终裁切范围",
-  "screen.minecamera.hud.loading": "正在加载取景...",
   "screen.minecamera.hud.shader_active": "光影已启用"
 }

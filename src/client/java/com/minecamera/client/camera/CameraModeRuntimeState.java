@@ -14,7 +14,6 @@ record CameraModeRuntimeState(
 	Text status,
 	CameraReviewState reviewState,
 	String latestCapturedMediaId,
-	boolean previewFailureActive,
 	CameraOpticalState opticalState
 ) {
 	boolean isTripodActive() {
@@ -30,7 +29,6 @@ record CameraModeRuntimeState(
 			status,
 			reviewState,
 			latestCapturedMediaId,
-			previewFailureActive,
 			opticalState
 		);
 	}
@@ -44,7 +42,6 @@ record CameraModeRuntimeState(
 			nextStatus,
 			reviewState,
 			latestCapturedMediaId,
-			previewFailureActive,
 			opticalState
 		);
 	}
@@ -58,7 +55,6 @@ record CameraModeRuntimeState(
 			status,
 			nextReviewState,
 			latestCapturedMediaId,
-			previewFailureActive,
 			opticalState
 		);
 	}
@@ -72,21 +68,6 @@ record CameraModeRuntimeState(
 			status,
 			reviewState,
 			mediaId,
-			previewFailureActive,
-			opticalState
-		);
-	}
-
-	CameraModeRuntimeState withPreviewFailureActive(boolean activePreviewFailure) {
-		return new CameraModeRuntimeState(
-			active,
-			activeHand,
-			session,
-			tripodPos,
-			status,
-			reviewState,
-			latestCapturedMediaId,
-			activePreviewFailure,
 			opticalState
 		);
 	}
@@ -100,7 +81,6 @@ record CameraModeRuntimeState(
 			status,
 			reviewState,
 			latestCapturedMediaId,
-			previewFailureActive,
 			nextOpticalState
 		);
 	}

@@ -27,6 +27,34 @@ public final class CameraProjectionMath {
 		return (float) Math.toDegrees(radians);
 	}
 
+	public static float framedViewportVerticalFovDegrees(
+		float captureVerticalFovDegrees,
+		int viewportWidth,
+		int viewportHeight,
+		int captureWidth,
+		int captureHeight
+	) {
+		if (viewportWidth <= 0 || viewportHeight <= 0) {
+			throw new IllegalArgumentException("Viewport dimensions must be positive");
+		}
+		if (captureWidth <= 0 || captureHeight <= 0) {
+			throw new IllegalArgumentException("Capture dimensions must be positive");
+		}
+		if (captureVerticalFovDegrees <= 0.0F || captureVerticalFovDegrees >= 180.0F) {
+			throw new IllegalArgumentException("Capture vertical FOV must be between 0 and 180 degrees");
+		}
+
+		double viewportAspect = viewportWidth / (double) viewportHeight;
+		double captureAspect = captureWidth / (double) captureHeight;
+		if (viewportAspect >= captureAspect) {
+			return captureVerticalFovDegrees;
+		}
+
+		double captureHalfAngle = Math.toRadians(captureVerticalFovDegrees) / 2.0D;
+		double viewportHalfAngle = Math.atan(Math.tan(captureHalfAngle) * captureAspect / viewportAspect);
+		return (float) Math.toDegrees(viewportHalfAngle * 2.0D);
+	}
+
 	public record SensorWindow(double widthMm, double heightMm) {
 	}
 }

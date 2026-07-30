@@ -8,7 +8,7 @@
 ## 下载最新版本
 
 - 最新发布页：[MineCamera Releases](https://github.com/fure1303-max/minecamera/releases)
-- 当前最新版本：[v0.1.1](https://github.com/fure1303-max/minecamera/releases/tag/v0.1.1)
+- 当前最新版本：[v0.1.2](https://github.com/fure1303-max/minecamera/releases/tag/v0.1.2)
 - 下载后请使用 `Minecraft 1.21.11 + Fabric Loader 0.19.3 + Java 21` 运行
 
 ## 版本要求
@@ -31,14 +31,15 @@
 - 焦距调节
 - 本地媒体索引与客户端图片回放
 - `Sodium / Iris` 的基础兼容处理
-- 照片展示框物品与基础放置形态
+- 照片展示框单框显示、多框矩形自动拼图与照片宽高比裁切
+- 展示框增删后的稳定重组、照片继承和缺失照片占位
+- 房主局域网缩略图同步，客户端不传输原始 PNG
 
 ## 当前未实现
 
 - 真实视频录制与导出
 - 最终版景深 / 光圈虚化成像
 - 最终版自动对焦
-- 照片展示框的照片装入、照片展示与自动拼组大图展示
 - 三脚架顶部独立相机小模型终稿
 
 ## 安装

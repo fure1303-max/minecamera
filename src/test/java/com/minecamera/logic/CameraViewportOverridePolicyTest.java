@@ -11,10 +11,9 @@ import org.junit.jupiter.api.Test;
 
 final class CameraViewportOverridePolicyTest {
 	@Test
-	void onlyTripodCameraModeOverridesWorldViewport() {
-		assertTrue(CameraViewportOverridePolicy.shouldOverrideWorldViewport(true, "tripod", ShaderCompatibilityState.NONE, false));
-		assertFalse(CameraViewportOverridePolicy.shouldOverrideWorldViewport(true, "handheld", ShaderCompatibilityState.NONE, false));
-		assertFalse(CameraViewportOverridePolicy.shouldOverrideWorldViewport(false, "tripod", ShaderCompatibilityState.NONE, false));
+	void everyActiveCameraModeOverridesWorldViewport() {
+		assertTrue(CameraViewportOverridePolicy.shouldOverrideWorldViewport(true, ShaderCompatibilityState.NONE, false));
+		assertFalse(CameraViewportOverridePolicy.shouldOverrideWorldViewport(false, ShaderCompatibilityState.NONE, false));
 	}
 
 	@Test
@@ -22,7 +21,6 @@ final class CameraViewportOverridePolicyTest {
 		assertFalse(
 			CameraViewportOverridePolicy.shouldOverrideWorldViewport(
 				true,
-				"tripod",
 				ShaderCompatibilityState.IRIS_SHADER_ACTIVE,
 				true
 			)
@@ -30,7 +28,6 @@ final class CameraViewportOverridePolicyTest {
 		assertTrue(
 			CameraViewportOverridePolicy.shouldOverrideWorldViewport(
 				true,
-				"tripod",
 				ShaderCompatibilityState.IRIS_SHADER_ACTIVE,
 				false
 			)

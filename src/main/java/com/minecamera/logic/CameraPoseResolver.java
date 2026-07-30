@@ -40,6 +40,21 @@ public final class CameraPoseResolver {
 		);
 	}
 
+	public static CameraRigSnapshot resolveTripodViewport(
+		CameraRigState rigState,
+		CameraPreviewMode previewMode,
+		float playerYaw,
+		float playerPitch,
+		boolean hasStoredPose,
+		float storedYaw,
+		float storedPitch
+	) {
+		boolean useStoredPose = previewMode == CameraPreviewMode.REVIEW && hasStoredPose;
+		float yaw = useStoredPose ? storedYaw : playerYaw;
+		float pitch = useStoredPose ? storedPitch : playerPitch;
+		return resolveTripod(rigState, yaw, pitch);
+	}
+
 	public static float clampPitch(float pitch) {
 		return MathHelper.clamp(pitch, -85.0F, 85.0F);
 	}
