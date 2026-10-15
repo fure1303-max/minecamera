@@ -46,16 +46,16 @@ public final class MineCameraNetworking {
 		PayloadTypeRegistry.playS2C().register(DisplayThumbnailPayload.ID, DisplayThumbnailPayload.CODEC);
 
 		ServerPlayNetworking.registerGlobalReceiver(UpdateTripodPosePayload.ID, (payload, context) ->
-			applyTripodPose(context.player(), payload)
+			context.server().execute(() -> applyTripodPose(context.player(), payload))
 		);
 		ServerPlayNetworking.registerGlobalReceiver(CommitPhotoCapturePayload.ID, (payload, context) ->
-			commitPhotoCapture(context.player(), payload)
+			context.server().execute(() -> commitPhotoCapture(context.player(), payload))
 		);
 		ServerPlayNetworking.registerGlobalReceiver(PublishDisplayThumbnailPayload.ID, (payload, context) ->
-			publishDisplayThumbnail(context.player(), payload)
+			context.server().execute(() -> publishDisplayThumbnail(context.player(), payload))
 		);
 		ServerPlayNetworking.registerGlobalReceiver(RequestDisplayThumbnailPayload.ID, (payload, context) ->
-			sendDisplayThumbnail(context.player(), payload.mediaId())
+			context.server().execute(() -> sendDisplayThumbnail(context.player(), payload.mediaId()))
 		);
 	}
 

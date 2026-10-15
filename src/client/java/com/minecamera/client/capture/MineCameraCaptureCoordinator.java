@@ -110,12 +110,18 @@ public final class MineCameraCaptureCoordinator {
 		if (pendingCommit == null || !COMMIT_SESSION.expire(System.currentTimeMillis())) {
 			return;
 		}
+		CapturedPhoto timedOutPhoto = pendingCommit;
 		pendingCommit = null;
 		captureInProgress = false;
+		ClientCaptureService.deleteCapture(client, timedOutPhoto);
 		MineCameraModeController.onCaptureFailed("capture_commit_timeout");
 	}
 
 	public static void onDisconnected() {
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (pendingCommit != null && client != null) {
+			ClientCaptureService.deleteCapture(client, pendingCommit);
+		}
 		pendingRequest = null;
 		pendingCommit = null;
 		captureInProgress = false;

@@ -1,6 +1,20 @@
 # Changelog
 
-## v0.1.2 - 2026-07-30
+## v0.2.0 - 2026-10-15
+
+核心逻辑审计修复与渲染/存储/网络性能优化。
+
+### Fixed
+- **服务端网络线程安全**：在 `MineCameraNetworking` 中将所有 C2S 数据包接收处理调度至 `context.server().execute(...)` 主线程执行，杜绝 Netty 线程跨线程修改玩家背包与方块实体引发的并发异常或刷物品风险。
+- **Iris 光影手部遮挡**：修复 `IrisHandRendererMixin` 中仅在离屏渲染时隐藏手部的缺陷，补充 `MineCameraModeController.isActive()` 判定，确保开启光影时取景器内不再被第一人称手部与相机模型遮挡。
+- **拍照提交超时文件清理**：修复 `MineCameraCaptureCoordinator` 在提交超时或断开连接时未清理本地 PNG 的缺陷，增加自动垃圾回收，防止废弃文件残留占用磁盘。
+- **相册索引 JSON 解析健壮性**：重构 `MediaIndexStore`，废弃脆弱的正规表达式文本解析，改用标准 `Gson` 序列化/反序列化，彻底支持字段乱序、玩家名特殊转义字符与多格式解析。
+
+### Performance & Optimization
+- **快门异步与防掉帧优化**：将 `ClientCaptureService` 中的高分辨率 PNG 编码、缩略图计算与索引更新移至原版 `Util.getIoWorkerExecutor()` 异步后台线程池，主渲染线程在复制完像素后立即释放 Framebuffer，解决高分辨率保存时的瞬间卡顿冻结。
+- **相框未就绪防高频扫盘**：在 `ClientPhotoTextureCache` 增加未就绪/缺失媒体的短期冷却缓存（3 秒），避免展示框在等待网络同步期间每帧高频扫描磁盘。
+- **消除高频交互反射**：创建 `CameraClientHooks` 解耦界面调用，彻底消除玩家右键相机和三脚架时的 `Class.forName` 反射性能损耗。
+
 
 完成照片展示框 V1，并重构相机实时取景链路。
 

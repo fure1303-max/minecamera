@@ -4,6 +4,7 @@ public final class ResolutionPresets {
 	private ResolutionPresets() {
 	}
 
+
 	public static ResolutionPreset maxPreset(String label, int ratioWidth, int ratioHeight) {
 		if (ratioWidth <= 0 || ratioHeight <= 0) {
 			throw new IllegalArgumentException("Aspect ratio dimensions must be positive");

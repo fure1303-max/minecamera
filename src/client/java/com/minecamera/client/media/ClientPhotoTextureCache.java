@@ -24,6 +24,8 @@ public final class ClientPhotoTextureCache {
 	private static final Identifier MISSING_TEXTURE_ID = Identifier.of("minecamera", "textures/misc/missing_photo.png");
 
 	private final Map<String, LoadedPhotoTexture> cache = new LinkedHashMap<>(16, 0.75F, true);
+	private final Map<String, Long> missingMediaCooldown = new java.util.HashMap<>();
+	private static final long MISSING_COOLDOWN_MILLIS = 3_000L;
 	private long estimatedBytes;
 
 	private ClientPhotoTextureCache() {
@@ -43,8 +45,14 @@ public final class ClientPhotoTextureCache {
 			return Optional.of(cached);
 		}
 
+		long now = System.currentTimeMillis();
+		if (now < missingMediaCooldown.getOrDefault(mediaId, 0L)) {
+			return Optional.of(missing(mediaId));
+		}
+
 		Path source = resolveSource(client, mediaId).orElse(null);
 		if (source == null) {
+			missingMediaCooldown.put(mediaId, now + MISSING_COOLDOWN_MILLIS);
 			ClientDisplayMediaSync.request(client, mediaId);
 			return Optional.of(missing(mediaId));
 		}
@@ -58,16 +66,19 @@ public final class ClientPhotoTextureCache {
 			);
 			LoadedPhotoTexture loaded = new LoadedPhotoTexture(mediaId, textureId, image.getWidth(), image.getHeight());
 			cache.put(mediaId, loaded);
+			missingMediaCooldown.remove(mediaId);
 			estimatedBytes += estimatedBytes(loaded);
 			evictIfNeeded(client);
 			return Optional.of(loaded);
 		} catch (IOException exception) {
+			missingMediaCooldown.put(mediaId, now + MISSING_COOLDOWN_MILLIS);
 			ClientDisplayMediaSync.request(client, mediaId);
 			return Optional.of(missing(mediaId));
 		}
 	}
 
 	public void invalidate(String mediaId) {
+		missingMediaCooldown.remove(mediaId);
 		LoadedPhotoTexture removed = cache.remove(mediaId);
 		if (removed == null) {
 			return;
@@ -80,6 +91,7 @@ public final class ClientPhotoTextureCache {
 	}
 
 	public void clear() {
+		missingMediaCooldown.clear();
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client != null) {
 			for (LoadedPhotoTexture texture : cache.values()) {

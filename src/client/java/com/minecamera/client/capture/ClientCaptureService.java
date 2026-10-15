@@ -56,18 +56,20 @@ public final class ClientCaptureService {
 			}
 
 			ScreenshotRecorder.takeScreenshot(captureFramebuffer, nativeImage -> {
-				try {
-					writePng(nativeImage, finalPath);
-					writeIndex(root, mediaId, finalPath, snapshot.captureWidth(), snapshot.captureHeight(), author, captureSource);
-					byte[] thumbnailBytes = DisplayThumbnailEncoder.encode(finalPath);
-					completionGate.run(() -> onSuccess.accept(new CapturedPhoto(mediaId, finalPath, thumbnailBytes)));
-				} catch (IOException exception) {
-					deleteCapture(root, new CapturedPhoto(mediaId, finalPath, new byte[0]));
-					completionGate.run(() -> onFailure.accept(exception.getMessage()));
-				} finally {
-					nativeImage.close();
-					captureFramebuffer.delete();
-				}
+				captureFramebuffer.delete();
+				net.minecraft.util.Util.getIoWorkerExecutor().execute(() -> {
+					try {
+						writePng(nativeImage, finalPath);
+						writeIndex(root, mediaId, finalPath, snapshot.captureWidth(), snapshot.captureHeight(), author, captureSource);
+						byte[] thumbnailBytes = DisplayThumbnailEncoder.encode(finalPath);
+						client.execute(() -> completionGate.run(() -> onSuccess.accept(new CapturedPhoto(mediaId, finalPath, thumbnailBytes))));
+					} catch (IOException exception) {
+						deleteCapture(root, new CapturedPhoto(mediaId, finalPath, new byte[0]));
+						client.execute(() -> completionGate.run(() -> onFailure.accept(exception.getMessage())));
+					} finally {
+						nativeImage.close();
+					}
+				});
 			});
 		} catch (IOException exception) {
 			onFailure.accept(exception.getMessage());

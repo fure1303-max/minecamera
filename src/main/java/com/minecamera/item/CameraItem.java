@@ -3,7 +3,6 @@ package com.minecamera.item;
 import com.minecamera.logic.CameraTripodTargetingAction;
 import com.minecamera.logic.CameraTripodTargetingPolicy;
 import com.minecamera.world.block.TripodBlock;
-import java.lang.reflect.Method;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -46,13 +45,7 @@ public final class CameraItem extends Item {
 	}
 
 	private static void openClientScreen(Hand hand) {
-		try {
-			Class<?> opener = Class.forName("com.minecamera.client.ui.MineCameraScreenOpener");
-			Method method = opener.getMethod("openHeldCamera", Hand.class);
-			method.invoke(null, hand);
-		} catch (ReflectiveOperationException exception) {
-			throw new IllegalStateException("Unable to open MineCamera screen", exception);
-		}
+		CameraClientHooks.openHeldCamera.accept(hand);
 	}
 
 	private static ActionResult mountOnTripod(World world, ItemUsageContext context, PlayerEntity player, BlockState state) {
@@ -74,12 +67,6 @@ public final class CameraItem extends Item {
 	}
 
 	private static void openMountedClientScreen(Hand hand, BlockPos pos) {
-		try {
-			Class<?> opener = Class.forName("com.minecamera.client.ui.MineCameraScreenOpener");
-			Method method = opener.getMethod("openMountedCamera", Hand.class, BlockPos.class);
-			method.invoke(null, hand, pos);
-		} catch (ReflectiveOperationException exception) {
-			throw new IllegalStateException("Unable to open tripod camera screen", exception);
-		}
+		CameraClientHooks.openMountedCamera.accept(hand, pos);
 	}
 }

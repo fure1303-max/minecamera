@@ -1,5 +1,6 @@
 package com.minecamera.client.mixin;
 
+import com.minecamera.client.camera.MineCameraModeController;
 import com.minecamera.client.capture.MineCameraCaptureRenderContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -12,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class IrisHandRendererMixin {
 	@Inject(method = { "renderSolid", "renderTranslucent" }, at = @At("HEAD"), cancellable = true, remap = false)
 	private void minecamera$suppressIrisHandRenderer(CallbackInfo ci) {
-		if (MineCameraCaptureRenderContext.shouldSuppressHandRendering()) {
+		if (MineCameraCaptureRenderContext.shouldSuppressHandRendering() || MineCameraModeController.isActive()) {
 			ci.cancel();
 		}
 	}

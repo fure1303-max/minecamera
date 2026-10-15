@@ -4,7 +4,6 @@ import com.minecamera.world.block.entity.TripodBlockEntity;
 import com.minecamera.logic.TripodInteractionAction;
 import com.minecamera.logic.TripodInteractionLogic;
 import com.minecamera.registry.MineCameraItems;
-import java.lang.reflect.Method;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
@@ -142,13 +141,7 @@ public final class TripodBlock extends BlockWithEntity implements BlockEntityPro
 
 	private static ActionResult openTripodCamera(World world, Hand hand, BlockPos pos) {
 		if (world.isClient()) {
-			try {
-				Class<?> opener = Class.forName("com.minecamera.client.ui.MineCameraScreenOpener");
-				Method method = opener.getMethod("openMountedCamera", Hand.class, BlockPos.class);
-				method.invoke(null, hand, pos);
-			} catch (ReflectiveOperationException exception) {
-				throw new IllegalStateException("Unable to open tripod camera screen", exception);
-			}
+			com.minecamera.item.CameraClientHooks.openMountedCamera.accept(hand, pos);
 		}
 		return ActionResult.SUCCESS;
 	}
