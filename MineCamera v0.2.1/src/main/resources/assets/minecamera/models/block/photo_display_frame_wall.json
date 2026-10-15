@@ -1,0 +1,22 @@
+{
+  "textures": {
+    "particle": "minecamera:block/photo_display_frame_front",
+    "front": "minecamera:block/photo_display_frame_front",
+    "back": "minecamera:block/photo_display_frame_back",
+    "edge": "minecamera:block/photo_display_frame_edge"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 15],
+      "to": [16, 16, 16],
+      "faces": {
+        "up": { "texture": "#edge" },
+        "down": { "texture": "#edge" },
+        "north": { "texture": "#front" },
+        "south": { "texture": "#back" },
+        "west": { "texture": "#edge" },
+        "east": { "texture": "#edge" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Linux shell scripts and Gradle wrapper require LF
+**/gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows command and batch scripts require CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary

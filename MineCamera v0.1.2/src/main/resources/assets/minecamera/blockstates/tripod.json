@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "enabled=false": {
+      "model": "minecamera:block/tripod"
+    },
+    "enabled=true": {
+      "model": "minecamera:block/tripod_loaded"
+    }
+  }
+}

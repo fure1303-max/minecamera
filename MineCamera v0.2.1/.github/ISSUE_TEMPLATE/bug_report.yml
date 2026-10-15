@@ -1,0 +1,61 @@
+name: Bug 反馈
+description: 反馈 MineCamera 的功能异常、崩溃或兼容问题
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提交前请先确认：
+
+        - 你使用的是 `Minecraft 1.21.11`
+        - 你使用的是 `Fabric Loader 0.19.3`
+        - 你尽量附上 `latest.log`、崩溃报告和截图
+
+  - type: input
+    id: version
+    attributes:
+      label: MineCamera 版本
+      placeholder: 例如 v0.1.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 请写明 Minecraft、Fabric Loader、Java，以及是否安装 Sodium / Iris / 光影包
+      placeholder: |
+        Minecraft 1.21.11
+        Fabric Loader 0.19.3
+        Java 21
+        Fabric API ...
+        Sodium ...
+        Iris ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+      placeholder: 你原本希望发生什么
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      placeholder: 实际发生了什么，是否能稳定复现
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或崩溃报告
+      description: 可以粘贴关键报错，或说明你附加了哪些文件
+      render: text
+
