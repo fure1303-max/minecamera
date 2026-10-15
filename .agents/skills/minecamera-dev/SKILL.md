@@ -68,7 +68,29 @@ Copy-Item "build\libs\minecamera-<version>.jar" "..\release\minecamera-<version>
 - **附件产物**：`minecamera-<version>.jar`（直接取自 `release/minecamera-<version>.jar`）
 - **内容描述**：直接提取 `CHANGELOG.md` 中对应版本的更新明细
 
-## 4. 核心系统速查
+## 4. Git 版本控制与自动提交推送 Runbook（强制执行）
+
+根目录已配置全局 Git 仓库与 GitHub 远程源 `https://github.com/fure1303-max/minecamera.git`。
+
+### 每轮任务完成自动提交推送准则：
+- **触发时机**：每轮功能改动、Bug 修复或文档调整完成后，**必须自动执行提交并推送到 GitHub 远端**，无需用户提示。
+- **前置单元测试**：涉及 Java 代码或资源改动时，确保测试通过：
+  ```powershell
+  $env:JAVA_HOME = "C:\Users\FuRE\AppData\Roaming\.minecraft\runtime\java-runtime-delta"
+  $env:Path = "$env:JAVA_HOME\bin;$env:Path"
+  .\gradlew.bat test --no-parallel
+  ```
+- **提交与推送操作**：
+  ```powershell
+  git add .
+  git commit -m "<type>(<scope>): <description>"
+  git push
+  ```
+- **产物与忽略规则防线**：
+  - 严禁将 `release/*.jar` 纳入 Git 暂存（`.gitignore` 已忽略）；
+  - 严禁提交 `.gradle/`、`build/`、`logs/`、`*.log` 或机密文件。
+
+## 5. 核心系统速查
 
 ### A. 相机控制与光学状态
 - `CameraModeSession`：相机状态生命周期控制器（管理就绪、瞄准、回放状态转换）。

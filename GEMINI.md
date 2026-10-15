@@ -65,3 +65,24 @@
 - **记录内容**：详细记录包括但不限于该版本所做的工作（干了什么）、新增或变更的功能（更新了什么）、修复的漏洞与缺陷（修复了什么，附带问题根因和修改方案），以及测试验证情况。
 - **目的**：确保无论上下文跨度多长，每个版本的开发过程、变更细节与遗留问题都能精准追溯。
 
+## 7. Git 版本控制与自动提交推送规范（强制）
+
+- **仓库与远程分支**：
+  - 项目根目录 `d:\Gemini\MineCamera\` 为统一 Git 仓库根目录。
+  - 远程仓库：`https://github.com/fure1303-max/minecamera.git`。
+  - 当前多版本结构开发分支为 `refactor/multi-version`（上游关联 `origin/refactor/multi-version`）。
+  - 文件换行策略与二进制属性由根目录 `.gitattributes` 统一声明（`gradlew` 为 `LF`，批处理为 `CRLF`，图片与 jar 声明为 `binary`）。
+- **忽略过滤与产物归档**：
+  - 根目录 `.gitignore` 全局递归排除所有子版本文件夹内的构建临时产物（`**/.gradle/`、`**/build/`）、运行及日志（`**/run/`、`**/logs/`、`*.log`）、IDE 配置（`**/.idea/`、`**/*.iml` 等）。
+  - `release/` 文件夹通过 `release/.gitkeep` 纳入版本结构管理；所有编译生成的 `release/*.jar` 成品包一律由 `.gitignore` 忽略（成品包仅作为本地发布缓存并通过 GitHub Releases 分发，严禁提交二进制 jar 到仓库避免历史膨胀）。
+- **每轮改动完成自动提交与推送（核心强制规则）**：
+  - **自动触发执行**：无论执行的是新功能开发、缺陷修复、配置微调还是文档更新，**在每轮改动工作完成后，必须自动执行 Git 暂存、提交并推送到 GitHub 远程仓库**，不需要用户额外催促或提醒。
+  - **前置质量检查**：若改动涉及源码或资源，提交前必须运行相关单元测试（`.\gradlew.bat test --no-parallel`），确保测试通过后再执行提交。
+  - **规范化提交格式**：提交信息严格遵循 Conventional Commits 规范，格式为 `<type>(<scope>): <description>`（如 `feat(camera): ...`、`fix(tripod): ...`、`docs: update GEMINI.md`）。
+  - **标准提交推送命令**：
+    ```powershell
+    git add .
+    git commit -m "<type>(<scope>): <description>"
+    git push
+    ```
+
