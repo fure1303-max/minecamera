@@ -21,17 +21,24 @@ abstract class GameRendererMixin {
 	@Inject(method = "updateCamera", at = @At("TAIL"))
 	private void minecamera$applyOffscreenCameraOverride(RenderTickCounter tickCounter, CallbackInfo ci) {
 		GameRenderer renderer = (GameRenderer) (Object) this;
-		CameraRigSnapshot snapshot = CameraViewportOverridePolicy.selectSnapshot(
-			MineCameraCaptureRenderContext.activeSnapshot(),
-			MineCameraModeController.currentWorldViewportSnapshot(renderer.getClient())
-		);
-		if (snapshot == null) {
+		CameraRigSnapshot offscreen = MineCameraCaptureRenderContext.activeSnapshot();
+		if (offscreen != null) {
+			Camera camera = renderer.getCamera();
+			CameraAccessor accessor = (CameraAccessor) (Object) camera;
+			accessor.minecamera$setPos(offscreen.position());
+			accessor.minecamera$setRotation(offscreen.yaw(), offscreen.pitch());
 			return;
 		}
-		Camera camera = renderer.getCamera();
-		CameraAccessor accessor = (CameraAccessor) (Object) camera;
-		accessor.minecamera$setPos(snapshot.position());
-		accessor.minecamera$setRotation(snapshot.yaw(), snapshot.pitch());
+
+		if (MineCameraModeController.isTripodActive()) {
+			CameraRigSnapshot snapshot = MineCameraModeController.currentWorldViewportSnapshot(renderer.getClient());
+			if (snapshot != null) {
+				Camera camera = renderer.getCamera();
+				CameraAccessor accessor = (CameraAccessor) (Object) camera;
+				accessor.minecamera$setPos(snapshot.position());
+				accessor.minecamera$setRotation(snapshot.yaw(), snapshot.pitch());
+			}
+		}
 	}
 
 	@Inject(method = "getFov", at = @At("HEAD"), cancellable = true)

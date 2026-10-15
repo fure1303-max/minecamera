@@ -8,7 +8,7 @@
 ## 下载最新版本
 
 - 最新发布页：[MineCamera Releases](https://github.com/fure1303-max/minecamera/releases)
-- 当前最新版本：[v0.2.0](https://github.com/fure1303-max/minecamera/releases/tag/v0.2.0)
+- 当前最新版本：[v0.2.1](https://github.com/fure1303-max/minecamera/releases/tag/v0.2.1)
 - 下载后请使用 `Minecraft 1.21.11 + Fabric Loader 0.19.3 + Java 21` 运行
 
 ## 版本要求

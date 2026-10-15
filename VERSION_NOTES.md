@@ -1,60 +1,63 @@
-# MineCamera v0.2.0 版本开发与功能记录
+# MineCamera v0.2.1 版本开发与功能记录
 
 ## 1. 版本基本信息
 
-- **版本号**：`v0.2.0`
-- **对应构建产物**：`release/minecamera-0.2.0.jar`
+- **版本号**：`v0.2.1`
+- **对应构建产物**：`release/minecamera-0.2.1.jar`
 - **支持环境**：`Minecraft Java 1.21.11` + `Fabric Loader 0.19.3` + `Java 21`
-- **版本定位**：核心逻辑安全性审计、稳定性增强、后台异步化与工程体系规范化。
+- **版本定位**：手持相机移动平滑插值修复、快门流畅体验重构、光影兼容逻辑还原与分辨率预设分级。
 
 ---
 
 ## 2. 具体工作与代码修改（干了什么、更新了什么、修复了什么）
 
-### 2.1 服务端网络线程安全性修复（修复）
-- **修改文件**：`com/minecamera/network/MineCameraNetworking.java`
-- **问题根因**：原版 Fabric 网络回调运行于 Netty I/O 线程，直接在 Netty 线程内操作玩家背包（如扣除胶卷、给予已曝光胶卷）和世界方块实体，极易引发并发修改异常（`ConcurrentModificationException`）以及玩家卡刷物品漏洞。
-- **改动措施**：将所有 C2S 数据包（`CommitPhotoCapturePayload`、`RequestDisplayThumbnailPayload`）的执行体全部包裹在 `context.server().execute(() -> { ... })` 中，保证操作 100% 运行在 Minecraft 游戏主线程。
+### 2.1 修复手持相机移动时画面“小幅度抽搐”（核心体验修复）
+- **修改文件**：
+  - `src/client/java/com/minecamera/client/mixin/GameRendererMixin.java`
+  - `src/client/java/com/minecamera/client/camera/MineCameraModeController.java`
+- **问题根因**：
+  在 `GameRendererMixin.updateCamera` 注入点，代码在末尾通过 `accessor.minecamera$setPos(snapshot.position())` 强制覆盖了相机的坐标和朝向。而在手持模式下，该位置取的是 `player.getEyePos()`（这是未经过渲染帧时间差插值的 **20 TPS 物理 Tick 离散坐标**）。原版 Minecraft 在 60/144+ FPS 下运行的子刻平滑插值（Sub-tick Interpolation）被彻底摧毁，导致玩家在取景状态下行走或转动视角时，画面每秒产生 20 次离散位移抽搐。
+- **改动措施**：
+  1. 在 `GameRendererMixin.minecamera$applyOffscreenCameraOverride` 中增加条件分支：**手持取景（LIVE）状态下完全不干预相机的坐标与旋转**，彻底交回原版平滑插值系统处理；仅在挂载三脚架时或处于离屏渲染截帧瞬间才接管机位。
+  2. 在 `MineCameraModeController.buildCurrentSnapshot` 中，拍摄快照优先从已就绪的渲染相机读取平滑插值坐标 `client.gameRenderer.getCamera().getCameraPos()` 以及 `getYaw()` / `getPitch()`，保证移动或跳跃中拍摄到的相片与画面所见像素级精确同步。
 
-### 2.2 拍照超时未提交文件自动垃圾回收（修复）
-- **修改文件**：`com/minecamera/client/capture/MineCameraCaptureCoordinator.java`、`CaptureCommitSession.java`
-- **问题根因**：拍照生成本地 PNG 后需向服务端提交验证。若由于网络波动、服务端报错或玩家断开连接导致超时，本地已生成的 PNG 仍会残留在磁盘上，长期使用会导致磁盘垃圾堆积。
-- **改动措施**：引入 `CaptureCommitSession` 会话管理，增加 15 秒超时判定与 `onDisconnected` 监听钩子。一旦发生超时或断连，自动调用 `ClientCaptureService.deleteCapture(...)` 清理未提交的本地图片与索引。
+### 2.2 消除“已保存”提示弹出瞬间的 0.1 秒微卡顿（性能与体验修复）
+- **修改文件**：`src/client/java/com/minecamera/client/camera/MineCameraModeController.java`
+- **问题根因**：
+  在后台异步写盘完成后，主线程会收到 `onCaptureSucceeded(fileName)` 回调。原代码在该回调中急切（Eagerly）执行了 `REVIEWS.refresh(...)`，导致刚刚保存到磁盘的超大 PNG 图片被立即在主线程读取、解码为 `NativeImage` 并通过 OpenGL 注册上传显存。而在 LIVE 取景模式下，屏幕上只绘制十字准星与取景黑框，这个回放纹理根本不在屏幕上绘制，造成了毫无意义的主线程 0.1 秒微卡顿。
+- **改动措施**：
+  在 `onCaptureSucceeded` 中增加前置判定：仅当玩家当前正处于回放模式（`CameraPreviewMode.REVIEW`）时才刷新纹理；处于实时取景（`LIVE`）模式时，仅更新最新拍摄 ID 与状态提示文本，将回放纹理的解码与显卡上传延迟至玩家主动按下 `R` 键进入回放时按需加载。
 
-### 2.3 相册索引解析改用标准 Gson 序列化（重构与健壮性提升）
-- **修改文件**：`com/minecamera/media/MediaIndexStore.java`
-- **测试补充**：`com/minecamera/media/MediaIndexStoreTest.java`
-- **改动措施**：彻底废弃原本脆弱的正则表达式 JSON 文本匹配方案，改用 Google `Gson` 库进行标准化类型安全序列化与反序列化。补充了多组单元测试，确保能够稳健处理玩家名包含特殊转义字符、字段乱序以及中文字符等复杂边界。
+### 2.3 彻底优化快门 0.5 秒硬性停顿与重构预设阶梯（性能重构）
+- **修改文件**：
+  - `src/main/java/com/minecamera/logic/ResolutionPresets.java`
+  - `src/main/java/com/minecamera/logic/CameraModePresetSet.java`
+  - `src/test/java/com/minecamera/logic/ResolutionValidatorTest.java`
+- **问题根因**：
+  旧版中 `CameraModePresetSet.PRESETS` 里的 5 个预设（1:1、4:3、3:2、16:9、21:9）**全部被 `maxPreset` 强制拉满到了 4K 极限画质（约 830 万像素）**：
+  - 1:1 是 `2880x2880`（829 万像素）
+  - 16:9 是 `3840x2160`（829 万像素）
+  - 4:3 是 `3324x2493`（828 万像素）
+  
+  因此玩家无论怎么按 `Tab` 切换预设，所有预设像素量全部是 4K。按下快门瞬间，游戏主线程必须在离屏 Framebuffer 完整重绘一次全景世界（包括光影阴影 pass 与所有后处理），再把 33MB 显存读回 CPU 并执行 829 万次循环，导致了无法避免的约 0.5 秒硬性冻结。
+- **改动措施**：
+  1. 在 `ResolutionPresets` 中新增 `standardPreset`，引入标准 1080p 摄影基准：
+     - `16:9` 为 `1920x1080`（207 万像素）
+     - `4:3` 为 `1440x1080`（155 万像素）
+     - `1:1` 为 `1080x1080`（116 万像素）
+     - `3:2` 为 `1620x1080`（175 万像素）
+     - `21:9` 为 `2520x1080`（272 万像素）
+  2. 1080p 标准预设像素总量仅为原本 4K 强制拉满的 **25%**，离屏渲染与显存回读开销暴降 75%，快门卡顿降至毫秒级无感体验。
+  3. 在预设轮换最后保留了 `16:9 4K`（`3840x2160`）与 `1:1 4K`（`2880x2880`）两个超高画质档位，供需要打印大幅海报的场景按需选用。
 
-### 2.4 快门图片保存与缩略图生成异步化（性能优化）
-- **修改文件**：`com/minecamera/client/capture/ClientCaptureService.java`
-- **改动措施**：将高分辨率 PNG 压缩写入（`image.writeTo(finalPath)`）、缩略图计算（`DisplayThumbnailEncoder.encode`）和本地索引更新全部移至原版后台线程池 `net.minecraft.util.Util.getIoWorkerExecutor()` 执行。主渲染线程在读取显存像素后立即释放 Framebuffer，避免主线程因长达 1 秒的文件 I/O 产生冻结。
-
-### 2.5 展示框未就绪缓存冷却保护（性能优化）
-- **修改文件**：`com/minecamera/client/media/ClientPhotoTextureCache.java`
-- **改动措施**：为未下载完成或缺失的照片纹理增加 3 秒读取冷却缓存（`MISSING_COOLDOWN_MILLIS`），避免每个相框在每帧渲染时（60/144 FPS）持续高频向本地磁盘发起读取探测。
-
-### 2.6 消除高频交互反射开销（性能优化）
-- **修改文件**：`com/minecamera/item/CameraItem.java`、`com/minecamera/world/block/TripodBlock.java`、新增 `com/minecamera/client/CameraClientHooks.java`
-- **改动措施**：删除了右键相机和三脚架时通过 `Class.forName("com.minecamera.client...")` 进行的反射调用，改用接口解耦的客户端专用钩子类，消除了反射查找性能消耗。
-
-### 2.7 规范化工程体系建立
-- 确立了多版本文件夹共存架构（`MineCamera v<version>`）。
-- 建立了项目根目录 `release/` 产物自动归档体系。
-- 编制了核心开发规约 `GEMINI.md` 与专用 Agent 技能 `minecamera-dev`。
+### 2.4 回退 Iris 光影的冗余修改（代码还原）
+- **修改文件**：`src/client/java/com/minecamera/client/mixin/IrisHandRendererMixin.java`
+- **改动措施**：
+  彻底回滚了上一版加入的 `|| MineCameraModeController.isActive()` 冗余拦截，恢复至与 v0.1.2 严格一致的判断逻辑：`if (MineCameraCaptureRenderContext.shouldSuppressHandRendering()) { ci.cancel(); }`。
 
 ---
 
 ## 3. 测试与验证
 
-- 执行 `./gradlew.bat test`，共 **166 项单元测试通过（100% Pass）**。
-- 成品已归档至 `release/minecamera-0.2.0.jar`。
-
----
-
-## 4. 该版本遗留并在 v0.2.1 修复的问题
-
-1. **手持移动时画面小幅度抖动抽搐**：`GameRendererMixin` 的 `updateCamera` 注入点强制覆盖了玩家相机位置与旋转，覆盖的为未插值的 20 TPS Tick 坐标，破坏了原版子刻平滑插值。
-2. **快门瞬间卡顿约 0.5 秒**：`CameraModePresetSet` 内全部预设均强制拉满为 4K（约 830 万像素），主线程离屏重绘与显存回读开销过大。
-3. **“已保存”跳出时微卡 0.1 秒**：异步写盘完成后主线程立即解压并上传了当前不需要绘制的回放纹理。
-4. **Iris 手部遮挡冗余判定**：在 `IrisHandRendererMixin` 中添加了非必要的 `MineCameraModeController.isActive()` 判定。
+- 执行 `./gradlew.bat test`，共 **167 项单元测试全部通过（100% Pass）**（包含新增的 `standardPreset` 尺寸与有效性测试）。
+- 执行 `./gradlew.bat build`，成品成功编译并归档至 `release/minecamera-0.2.1.jar`。

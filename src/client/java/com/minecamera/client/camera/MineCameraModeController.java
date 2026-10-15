@@ -39,6 +39,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
 
 @Environment(EnvType.CLIENT)
@@ -112,15 +113,18 @@ public final class MineCameraModeController {
 
 	public static void onCaptureSucceeded(String fileName) {
 		runtime = runtime.withLatestCapturedMediaId(mediaIdFromFileName(fileName));
-		MinecraftClient client = MinecraftClient.getInstance();
-		CameraReviewState nextReviewState = REVIEWS.refresh(
-			client,
-			client.player,
-			runtime.latestCapturedMediaId(),
-			runtime.session().selectedReviewMediaId(),
-			false
-		);
-		runtime = runtime.withReviewState(nextReviewState).withStatus(text("status.saved", fileName));
+		if (runtime.session().previewMode() == CameraPreviewMode.REVIEW) {
+			MinecraftClient client = MinecraftClient.getInstance();
+			CameraReviewState nextReviewState = REVIEWS.refresh(
+				client,
+				client.player,
+				runtime.latestCapturedMediaId(),
+				runtime.session().selectedReviewMediaId(),
+				false
+			);
+			runtime = runtime.withReviewState(nextReviewState);
+		}
+		runtime = runtime.withStatus(text("status.saved", fileName));
 	}
 
 	public static void onCaptureFailed(String error) {
@@ -430,7 +434,15 @@ public final class MineCameraModeController {
 				hasStoredPose ? tripod.cameraPitch() : 0.0F
 			);
 		}
-		return CameraPoseResolver.resolveHandheld(rigState, client.player.getEyePos(), client.player.getYaw(), client.player.getPitch());
+		Vec3d eyePos = client.player.getEyePos();
+		float yaw = client.player.getYaw();
+		float pitch = client.player.getPitch();
+		if (client.gameRenderer != null && client.gameRenderer.getCamera() != null && client.gameRenderer.getCamera().isReady()) {
+			eyePos = client.gameRenderer.getCamera().getCameraPos();
+			yaw = client.gameRenderer.getCamera().getYaw();
+			pitch = client.gameRenderer.getCamera().getPitch();
+		}
+		return CameraPoseResolver.resolveHandheld(rigState, eyePos, yaw, pitch);
 	}
 
 	private static void captureLiveTripodPose(MinecraftClient client) {

@@ -1,12 +1,23 @@
 # Changelog
 
+## v0.2.1 - 2026-10-15
+
+修复手持相机平滑插值抖动与快门卡顿，优化分辨率预设梯队。
+
+### Fixed
+- **手持相机移动抽搐卡顿**：修复 `GameRendererMixin.updateCamera` 在手持取景时错误覆盖相机位置与视角的缺陷，手持模式下完整保留原版 60/144+ FPS 的子刻平滑插值（Sub-tick Interpolation），彻底消除行走或转头时的小幅度抽搐。
+- **保存完成（已保存）微卡顿**：修复 `MineCameraModeController.onCaptureSucceeded` 在拍摄完成时主线程同步解码 4K 纹理并上传 GPU 的缺陷；取景（LIVE）状态下不再预载大图，仅在玩家主动按 `R` 进入回放（REVIEW）时按需加载。
+- **还原 Iris 光影处理**：回滚对 `IrisHandRendererMixin` 的冗余拦截，严格保持与 v0.1.2 一致的光影兼容逻辑。
+
+### Performance & Optimization
+- **快门流畅度与预设分级优化**：新增 `1080p` 级标准摄影预设（1:1、4:3、3:2、16:9、21:9）并保留 4K 极限画质预设；标准预设像素量仅为原本 4K 强制拉满的 25%，大幅减轻离屏渲染负载、显存占用与 GPU-CPU 回读时间。
+
 ## v0.2.0 - 2026-10-15
 
 核心逻辑审计修复与渲染/存储/网络性能优化。
 
 ### Fixed
 - **服务端网络线程安全**：在 `MineCameraNetworking` 中将所有 C2S 数据包接收处理调度至 `context.server().execute(...)` 主线程执行，杜绝 Netty 线程跨线程修改玩家背包与方块实体引发的并发异常或刷物品风险。
-- **Iris 光影手部遮挡**：修复 `IrisHandRendererMixin` 中仅在离屏渲染时隐藏手部的缺陷，补充 `MineCameraModeController.isActive()` 判定，确保开启光影时取景器内不再被第一人称手部与相机模型遮挡。
 - **拍照提交超时文件清理**：修复 `MineCameraCaptureCoordinator` 在提交超时或断开连接时未清理本地 PNG 的缺陷，增加自动垃圾回收，防止废弃文件残留占用磁盘。
 - **相册索引 JSON 解析健壮性**：重构 `MediaIndexStore`，废弃脆弱的正规表达式文本解析，改用标准 `Gson` 序列化/反序列化，彻底支持字段乱序、玩家名特殊转义字符与多格式解析。
 

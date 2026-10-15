@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class IrisHandRendererMixin {
 	@Inject(method = { "renderSolid", "renderTranslucent" }, at = @At("HEAD"), cancellable = true, remap = false)
 	private void minecamera$suppressIrisHandRenderer(CallbackInfo ci) {
-		if (MineCameraCaptureRenderContext.shouldSuppressHandRendering() || MineCameraModeController.isActive()) {
+		if (MineCameraCaptureRenderContext.shouldSuppressHandRendering()) {
 			ci.cancel();
 		}
 	}

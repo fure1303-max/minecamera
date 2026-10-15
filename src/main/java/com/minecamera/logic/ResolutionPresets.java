@@ -4,6 +4,16 @@ public final class ResolutionPresets {
 	private ResolutionPresets() {
 	}
 
+	public static ResolutionPreset standardPreset(String label, int ratioWidth, int ratioHeight) {
+		if (ratioWidth <= 0 || ratioHeight <= 0) {
+			throw new IllegalArgumentException("Aspect ratio dimensions must be positive");
+		}
+		int height = 1080;
+		int width = (int) Math.round((double) height * ratioWidth / ratioHeight);
+		width = (width / 2) * 2;
+		height = (height / 2) * 2;
+		return new ResolutionPreset(label, width, height);
+	}
 
 	public static ResolutionPreset maxPreset(String label, int ratioWidth, int ratioHeight) {
 		if (ratioWidth <= 0 || ratioHeight <= 0) {
