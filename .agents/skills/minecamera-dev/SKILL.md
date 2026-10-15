@@ -60,35 +60,31 @@ Copy-Item "build\libs\minecamera-<version>.jar" "..\release\minecamera-<version>
 > **提示**：如果网络连接 Fabric Maven 较慢或不稳定，建议使用 `--no-parallel` 避免并发 SSL 握手重置。
 > 构建产物输出位于：`build/libs/minecamera-<version>.jar`，构建完毕后自动复制到 `release/` 归档。
 
-## 3. GitHub Releases 发布 Runbook
+## 3. 发版与 GitHub Releases 流程 Runbook
 
-上传到 GitHub Releases 时严格遵循已有标准：
-- **Tag 格式**：`v<version>`（如 `v0.1.3`）
-- **Release 标题**：`MineCamera v<version>`（如 `MineCamera v0.1.3`）
-- **附件产物**：`minecamera-<version>.jar`（直接取自 `release/minecamera-<version>.jar`）
-- **内容描述**：直接提取 `CHANGELOG.md` 中对应版本的更新明细
+### 双分支协同与发布流水线（每产出新版本必须执行）：
+1. **工作台归档与自用备份（`refactor/multi-version` 分支）**：
+   - 在多版本平铺工作区完成编码与测试后，生成归档 jar（`release/minecamera-<version>.jar`）；
+   - 更新对应版本子目录的 `VERSION_NOTES.md` 与根目录 `README.md`；
+   - 自动提交并推送到内部全景分支 `refactor/multi-version`。
+2. **正统主分支同步与发版（`main` 分支）**：
+   - 将新版本的纯净源码（`src/`、`build.gradle`、`README.md` 等）同步提交至 `main` 主分支，推送到 GitHub 远端；
+   - 在 `main` 对应提交上创建并推送版本 Tag：`v<version>`（如 `v0.2.3`）；
+   - 在 GitHub Releases 发布新版本，上传 `release/minecamera-<version>.jar` 并附带更新明细。
 
 ## 4. Git 版本控制与自动提交推送 Runbook（强制执行）
 
 根目录已配置全局 Git 仓库与 GitHub 远程源 `https://github.com/fure1303-max/minecamera.git`。
 
-### 每轮任务完成自动提交推送准则：
-- **触发时机**：每轮功能改动、Bug 修复或文档调整完成后，**必须自动执行提交并推送到 GitHub 远端**，无需用户提示。
-- **前置单元测试**：涉及 Java 代码或资源改动时，确保测试通过：
-  ```powershell
-  $env:JAVA_HOME = "C:\Users\FuRE\AppData\Roaming\.minecraft\runtime\java-runtime-delta"
-  $env:Path = "$env:JAVA_HOME\bin;$env:Path"
-  .\gradlew.bat test --no-parallel
-  ```
-- **提交与推送操作**：
-  ```powershell
-  git add .
-  git commit -m "<type>(<scope>): <description>"
-  git push
-  ```
-- **产物与忽略规则防线**：
-  - 严禁将 `release/*.jar` 纳入 Git 暂存（`.gitignore` 已忽略）；
-  - 严禁提交 `.gradle/`、`build/`、`logs/`、`*.log` 或机密文件。
+- **双分支定位**：
+  - `refactor/multi-version`：内部多版本全景工作台（自用，用于全版本代码直观对比与历史回溯）；
+  - `main`：官方正统主分支（对外开源门面，始终展示当前最新版本标准工程）。
+- **日常改动自动提交推送准则**：
+  - 无论功能改动、Bug 修复还是文档调整，完成后必须自动执行 `git add`、规范提交与推送；
+  - 涉及 Java 逻辑时前置运行单元测试（`.\gradlew.bat test --no-parallel`）。
+- **忽略防线**：
+  - 严禁将 `release/*.jar` 纳入 Git 暂存（由 `.gitignore` 忽略，只通过 GitHub Releases 托管）；
+  - 严禁提交 `.gradle/`、`build/`、`logs/` 或敏感环境文件。
 
 ## 5. 核心系统速查
 
