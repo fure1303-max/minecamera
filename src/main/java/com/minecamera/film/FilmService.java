@@ -2,13 +2,16 @@ package com.minecamera.film;
 
 import com.minecamera.item.FilmItem;
 import com.minecamera.logic.FocusMode;
+import com.minecamera.registry.MineCameraItems;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 
 public final class FilmService {
-	static final String ROOT_KEY = "minecamera_film";
+	public static final String ROOT_KEY = "minecamera_film";
 	private static final String STATE_KEY = "state";
 	private static final String CONTENT_TYPE_KEY = "content_type";
 	private static final String MEDIA_ID_KEY = "media_id";
@@ -79,7 +82,16 @@ public final class FilmService {
 		return stack.getItem() instanceof FilmItem;
 	}
 
-	static FilmRecord readFromCustomData(NbtCompound container) {
+	public static ItemStack createExposedFilmStack(FilmRecord record) {
+		if (record == null || record.isBlank()) {
+			return ItemStack.EMPTY;
+		}
+		ItemStack stack = new ItemStack(MineCameraItems.FILM);
+		write(stack, record);
+		return stack;
+	}
+
+	public static FilmRecord readFromCustomData(NbtCompound container) {
 		if (container == null || !container.contains(ROOT_KEY)) {
 			return FilmRecord.blank();
 		}
@@ -111,7 +123,7 @@ public final class FilmService {
 		);
 	}
 
-	static NbtCompound writeToCustomData(NbtCompound existingData, FilmRecord record) {
+	public static NbtCompound writeToCustomData(NbtCompound existingData, FilmRecord record) {
 		NbtCompound root = existingData == null ? new NbtCompound() : existingData.copy();
 		if (record.isBlank()) {
 			root.remove(ROOT_KEY);
@@ -119,6 +131,85 @@ public final class FilmService {
 			root.put(ROOT_KEY, toNbt(record));
 		}
 		return root.isEmpty() ? null : root;
+	}
+
+	public static FilmRecord readFromView(ReadView view) {
+		if (view == null) {
+			return FilmRecord.blank();
+		}
+
+		ReadView filmData = view.getOptionalReadView(ROOT_KEY).orElse(null);
+		if (filmData == null) {
+			return FilmRecord.blank();
+		}
+
+		FilmState state = FilmState.fromId(filmData.getString(STATE_KEY, FilmState.BLANK.id()));
+		if (state == FilmState.BLANK) {
+			return FilmRecord.blank();
+		}
+
+		FilmContentType contentType = FilmContentType.fromId(filmData.getString(CONTENT_TYPE_KEY, FilmContentType.PHOTO.id()));
+		String mediaId = filmData.getString(MEDIA_ID_KEY, "");
+		String author = filmData.getString(AUTHOR_KEY, "");
+		long capturedAt = filmData.getLong(CAPTURED_AT_KEY, 0L);
+		String captureSource = filmData.getString(CAPTURE_SOURCE_KEY, "");
+		CaptureSettings captureSettings = readSettingsFromView(filmData);
+
+		return FilmRecord.exposed(
+			contentType,
+			mediaId.isBlank() ? null : mediaId,
+			captureSettings,
+			author.isBlank() ? null : author,
+			capturedAt,
+			captureSource.isBlank() ? null : captureSource
+		);
+	}
+
+	public static void writeToView(WriteView view, FilmRecord record) {
+		if (view == null) {
+			return;
+		}
+		if (record == null || record.isBlank()) {
+			view.remove(ROOT_KEY);
+			return;
+		}
+
+		WriteView filmData = view.get(ROOT_KEY);
+		filmData.putString(STATE_KEY, record.state().id());
+		filmData.putString(CONTENT_TYPE_KEY, record.contentType().id());
+		if (record.mediaId() != null && !record.mediaId().isBlank()) {
+			filmData.putString(MEDIA_ID_KEY, record.mediaId());
+		}
+		if (record.author() != null && !record.author().isBlank()) {
+			filmData.putString(AUTHOR_KEY, record.author());
+		}
+		if (record.captureSource() != null && !record.captureSource().isBlank()) {
+			filmData.putString(CAPTURE_SOURCE_KEY, record.captureSource());
+		}
+		filmData.putLong(CAPTURED_AT_KEY, record.capturedAtEpochSeconds());
+
+		if (record.captureSettings() != null) {
+			WriteView settings = filmData.get(SETTINGS_KEY);
+			settings.putInt(WIDTH_KEY, record.captureSettings().width());
+			settings.putInt(HEIGHT_KEY, record.captureSettings().height());
+			settings.putInt(FOCAL_LENGTH_KEY, record.captureSettings().focalLength());
+			settings.putDouble(APERTURE_KEY, record.captureSettings().aperture());
+			settings.putString(FOCUS_MODE_KEY, record.captureSettings().focusMode().name());
+		}
+	}
+
+	private static CaptureSettings readSettingsFromView(ReadView filmData) {
+		ReadView settings = filmData.getOptionalReadView(SETTINGS_KEY).orElse(null);
+		if (settings == null) {
+			return null;
+		}
+		return new CaptureSettings(
+			settings.getInt(WIDTH_KEY, 0),
+			settings.getInt(HEIGHT_KEY, 0),
+			settings.getInt(FOCAL_LENGTH_KEY, 50),
+			settings.getDouble(APERTURE_KEY, 2.8D),
+			FocusMode.valueOf(settings.getString(FOCUS_MODE_KEY, FocusMode.AUTO.name()))
+		);
 	}
 
 	public static boolean requiresSeparateResultStack(int blankFilmCount) {

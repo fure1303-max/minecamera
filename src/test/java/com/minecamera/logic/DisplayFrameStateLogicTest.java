@@ -1,6 +1,7 @@
 package com.minecamera.logic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.minecamera.display.DisplayFrameState;
 import java.util.Map;
@@ -148,4 +149,30 @@ final class DisplayFrameStateLogicTest {
 		);
 	}
 
+	@Test
+	void removesEntirePhotoGroupWhenOneCellIsRemoved() {
+		Map<GridPoint, DisplayFrameState> original = twoByTwoPhoto("media-remove");
+		Map<GridPoint, DisplayFrameState> result = DisplayFrameStateLogic.removePhoto(original, new GridPoint(1, 1));
+
+		assertTrue(result.isEmpty());
+	}
+
+	@Test
+	void leavesOtherPhotoGroupsUntouchedWhenOneGroupIsRemoved() {
+		Map<GridPoint, DisplayFrameState> current = new java.util.HashMap<>(twoByTwoPhoto("media-group1"));
+		current.put(new GridPoint(3, 3), new DisplayFrameState("media-group2", new GridPoint(3, 3), 1, 1, 0, 0));
+
+		Map<GridPoint, DisplayFrameState> result = DisplayFrameStateLogic.removePhoto(current, new GridPoint(0, 1));
+
+		assertEquals(1, result.size());
+		assertEquals(new DisplayFrameState("media-group2", new GridPoint(3, 3), 1, 1, 0, 0), result.get(new GridPoint(3, 3)));
+	}
+
+	@Test
+	void returnsUnchangedMapWhenRemovingFromEmptyOrMissingCell() {
+		Map<GridPoint, DisplayFrameState> original = twoByTwoPhoto("media-keep");
+		Map<GridPoint, DisplayFrameState> result = DisplayFrameStateLogic.removePhoto(original, new GridPoint(5, 5));
+
+		assertEquals(original, result);
+	}
 }

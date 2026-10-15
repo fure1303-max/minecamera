@@ -8,7 +8,7 @@
 ## 下载最新版本
 
 - 最新发布页：[MineCamera Releases](https://github.com/fure1303-max/minecamera/releases)
-- 当前最新版本：[v0.2.1](https://github.com/fure1303-max/minecamera/releases/tag/v0.2.1)
+- 当前最新版本：[v0.2.2](https://github.com/fure1303-max/minecamera/releases/tag/v0.2.2)
 - 下载后请使用 `Minecraft 1.21.11 + Fabric Loader 0.19.3 + Java 21` 运行
 
 ## 版本要求
@@ -27,11 +27,13 @@
 - 离屏拍照并保存本地 `PNG`
 - 空白胶卷 / 已曝光胶卷流程
 - HUD 内照片回放
-- 分辨率预设切换
+- 分辨率预设切换（含标准 1080p 级与 16:9 / 3:2 / 1:1 4K 极限画质预设）
 - 焦距调节
 - 本地媒体索引与客户端图片回放
 - `Sodium / Iris` 的基础兼容处理
 - 照片展示框单框显示、多框矩形自动拼图与照片宽高比裁切
+- 展示框空手右键取下相片并返还对应胶卷（含完整拍摄元数据）
+- 展示框贴照片胶卷消耗、旧相片防吞回收与方块拆除防丢机制
 - 展示框增删后的稳定重组、照片继承和缺失照片占位
 - 房主局域网缩略图同步，客户端不传输原始 PNG
 

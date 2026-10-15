@@ -2,12 +2,15 @@ package com.minecamera.world.block;
 
 import com.minecamera.display.DisplaySurface;
 import com.minecamera.display.DisplayFrameState;
+import com.minecamera.film.FilmContentType;
 import com.minecamera.film.FilmRecord;
 import com.minecamera.film.FilmService;
 import com.minecamera.logic.DisplayFrameStateLogic;
 import com.minecamera.logic.GridPoint;
 import com.minecamera.world.block.entity.PhotoDisplayFrameBlockEntity;
 import com.mojang.serialization.MapCodec;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
@@ -149,8 +152,77 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 		}
 
 		if (!world.isClient() && world instanceof ServerWorld serverWorld) {
-			applyFilmToConnectedFrames(serverWorld, pos, filmRecord.mediaId());
+			applyFilmToConnectedFrames(serverWorld, pos, player, stack, filmRecord);
 		}
+		return ActionResult.SUCCESS;
+	}
+
+	@Override
+	protected ActionResult onUse(
+		BlockState state,
+		World world,
+		BlockPos pos,
+		PlayerEntity player,
+		BlockHitResult hit
+	) {
+		if (!player.getMainHandStack().isEmpty()) {
+			return ActionResult.PASS;
+		}
+
+		BlockEntity be = world.getBlockEntity(pos);
+		if (!(be instanceof PhotoDisplayFrameBlockEntity clickedFrame)) {
+			return ActionResult.PASS;
+		}
+
+		DisplayFrameState displayState = clickedFrame.getDisplayState();
+		if (displayState.isEmpty()) {
+			return ActionResult.PASS;
+		}
+
+		if (world.isClient()) {
+			return ActionResult.SUCCESS;
+		}
+
+		if (world instanceof ServerWorld serverWorld) {
+			DisplaySurface surface = DisplaySurface.from(state);
+			Map<BlockPos, PhotoDisplayFrameBlockEntity> frames = collectConnectedFrames(serverWorld, pos, surface);
+			if (frames.isEmpty()) {
+				return ActionResult.PASS;
+			}
+
+			FilmRecord filmRecord = clickedFrame.getFilmRecord();
+			if (filmRecord == null || filmRecord.isBlank()) {
+				filmRecord = FilmRecord.exposed(FilmContentType.PHOTO, displayState.mediaId(), null, null, 0L, null);
+			}
+
+			Map<GridPoint, DisplayFrameState> current = new HashMap<>();
+			Map<String, FilmRecord> filmByMedia = new HashMap<>();
+			for (Map.Entry<BlockPos, PhotoDisplayFrameBlockEntity> entry : frames.entrySet()) {
+				GridPoint point = surface.project(entry.getKey());
+				DisplayFrameState s = entry.getValue().getDisplayState();
+				if (!s.isEmpty()) {
+					current.put(point, s);
+					FilmRecord r = entry.getValue().getFilmRecord();
+					if (r != null && !r.isBlank()) {
+						filmByMedia.put(s.mediaId(), r);
+					}
+				}
+			}
+
+			Map<GridPoint, DisplayFrameState> updated = DisplayFrameStateLogic.removePhoto(
+				current,
+				surface.project(pos)
+			);
+			applyStates(frames, updated, filmByMedia);
+
+			ItemStack filmStack = FilmService.createExposedFilmStack(filmRecord);
+			if (!player.getInventory().insertStack(filmStack)) {
+				dropStack(serverWorld, pos, filmStack);
+			}
+
+			serverWorld.playSound(null, pos, SoundEvents.ENTITY_ITEM_FRAME_REMOVE_ITEM, SoundCategory.BLOCKS, 1.0F, 1.0F);
+		}
+
 		return ActionResult.SUCCESS;
 	}
 
@@ -164,20 +236,65 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 
 	@Override
 	protected void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
+		FilmRecord removedFilm = null;
+		String removedMediaId = null;
+		if (!moved) {
+			BlockEntity be = world.getBlockEntity(pos);
+			if (be instanceof PhotoDisplayFrameBlockEntity frame) {
+				DisplayFrameState frameState = frame.getDisplayState();
+				if (!frameState.isEmpty()) {
+					removedMediaId = frameState.mediaId();
+					removedFilm = frame.getFilmRecord();
+					if (removedFilm == null || removedFilm.isBlank()) {
+						removedFilm = FilmRecord.exposed(FilmContentType.PHOTO, removedMediaId, null, null, 0L, null);
+					}
+				}
+			}
+		}
+
 		super.onStateReplaced(state, world, pos, moved);
+
 		if (!moved) {
 			repartitionNeighboringFrames(world, pos, state);
+
+			if (removedMediaId != null && removedFilm != null) {
+				DisplaySurface surface = DisplaySurface.from(state);
+				boolean stillPresent = false;
+				for (Direction direction : surface.connectionDirections()) {
+					BlockPos neighborPos = pos.offset(direction);
+					if (world.getBlockEntity(neighborPos) instanceof PhotoDisplayFrameBlockEntity neighborFrame) {
+						if (removedMediaId.equals(neighborFrame.getDisplayState().mediaId())) {
+							stillPresent = true;
+							break;
+						}
+					}
+				}
+				if (!stillPresent) {
+					dropStack(world, pos, FilmService.createExposedFilmStack(removedFilm));
+				}
+			}
 		}
 	}
 
-	private static void applyFilmToConnectedFrames(ServerWorld world, BlockPos clickedPos, String mediaId) {
+	private static void applyFilmToConnectedFrames(
+		ServerWorld world,
+		BlockPos clickedPos,
+		PlayerEntity player,
+		ItemStack stack,
+		FilmRecord filmRecord
+	) {
 		DisplaySurface surface = DisplaySurface.from(world.getBlockState(clickedPos));
 		Map<BlockPos, PhotoDisplayFrameBlockEntity> frames = collectConnectedFrames(world, clickedPos, surface);
 		if (frames.isEmpty()) {
 			return;
 		}
 
+		PhotoDisplayFrameBlockEntity clickedEntity = frames.get(clickedPos);
+		DisplayFrameState existingState = clickedEntity != null ? clickedEntity.getDisplayState() : DisplayFrameState.empty();
+		FilmRecord existingFilm = clickedEntity != null ? clickedEntity.getFilmRecord() : null;
+
 		Map<GridPoint, DisplayFrameState> current = new HashMap<>();
+		Map<String, FilmRecord> filmByMedia = new HashMap<>();
 		Set<GridPoint> occupied = new HashSet<>();
 		for (Map.Entry<BlockPos, PhotoDisplayFrameBlockEntity> entry : frames.entrySet()) {
 			GridPoint point = surface.project(entry.getKey());
@@ -185,6 +302,10 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 			DisplayFrameState state = entry.getValue().getDisplayState();
 			if (!state.isEmpty()) {
 				current.put(point, state);
+				FilmRecord rec = entry.getValue().getFilmRecord();
+				if (rec != null && !rec.isBlank()) {
+					filmByMedia.put(state.mediaId(), rec);
+				}
 			}
 		}
 
@@ -192,9 +313,26 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 			occupied,
 			current,
 			surface.project(clickedPos),
-			mediaId
+			filmRecord.mediaId()
 		);
-		applyStates(frames, updated);
+		filmByMedia.put(filmRecord.mediaId(), filmRecord);
+		applyStates(frames, updated, filmByMedia);
+
+		if (!existingState.isEmpty()) {
+			FilmRecord returnRecord = (existingFilm != null && !existingFilm.isBlank())
+				? existingFilm
+				: FilmRecord.exposed(FilmContentType.PHOTO, existingState.mediaId(), null, null, 0L, null);
+			ItemStack oldFilmStack = FilmService.createExposedFilmStack(returnRecord);
+			if (!player.getInventory().insertStack(oldFilmStack)) {
+				dropStack(world, clickedPos, oldFilmStack);
+			}
+		}
+
+		if (!player.isCreative()) {
+			stack.decrement(1);
+		}
+
+		world.playSound(null, clickedPos, SoundEvents.ENTITY_ITEM_FRAME_ADD_ITEM, SoundCategory.BLOCKS, 1.0F, 1.0F);
 	}
 
 	private static void repartitionNeighboringFrames(ServerWorld world, BlockPos removedPos, BlockState removedState) {
@@ -222,6 +360,7 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 		Map<BlockPos, PhotoDisplayFrameBlockEntity> component
 	) {
 		Map<GridPoint, DisplayFrameState> previous = new HashMap<>();
+		Map<String, FilmRecord> filmByMedia = new HashMap<>();
 		Set<GridPoint> occupied = new HashSet<>();
 		for (Map.Entry<BlockPos, PhotoDisplayFrameBlockEntity> entry : component.entrySet()) {
 			GridPoint point = surface.project(entry.getKey());
@@ -229,17 +368,27 @@ public final class PhotoDisplayFrameBlock extends BlockWithEntity implements Blo
 			DisplayFrameState state = entry.getValue().getDisplayState();
 			if (!state.isEmpty()) {
 				previous.put(point, state);
+				FilmRecord rec = entry.getValue().getFilmRecord();
+				if (rec != null && !rec.isBlank()) {
+					filmByMedia.put(state.mediaId(), rec);
+				}
 			}
 		}
 
-		applyStates(component, DisplayFrameStateLogic.repartition(occupied, previous));
+		applyStates(component, DisplayFrameStateLogic.repartition(occupied, previous), filmByMedia);
 	}
 
-	private static void applyStates(Map<BlockPos, PhotoDisplayFrameBlockEntity> frames, Map<GridPoint, DisplayFrameState> states) {
+	private static void applyStates(
+		Map<BlockPos, PhotoDisplayFrameBlockEntity> frames,
+		Map<GridPoint, DisplayFrameState> states,
+		Map<String, FilmRecord> filmByMedia
+	) {
 		for (Map.Entry<BlockPos, PhotoDisplayFrameBlockEntity> entry : frames.entrySet()) {
 			DisplaySurface surface = DisplaySurface.from(entry.getValue().getCachedState());
 			GridPoint point = surface.project(entry.getKey());
-			entry.getValue().setDisplayState(states.getOrDefault(point, DisplayFrameState.empty()));
+			DisplayFrameState newState = states.getOrDefault(point, DisplayFrameState.empty());
+			FilmRecord record = newState.isEmpty() ? null : filmByMedia.get(newState.mediaId());
+			entry.getValue().setDisplayStateAndFilm(newState, record);
 		}
 	}
 

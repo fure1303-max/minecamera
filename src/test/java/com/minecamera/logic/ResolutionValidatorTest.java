@@ -60,4 +60,13 @@ final class ResolutionValidatorTest {
 		assertEquals(1080, sixteenByNine.height());
 		assertTrue(ResolutionValidator.validate(sixteenByNine.width(), sixteenByNine.height(), 4096).valid());
 	}
+
+	@Test
+	void computesAValidThreeByTwoFourKPreset() {
+		ResolutionPreset preset = ResolutionPresets.maxPreset("3:2 4K", 3, 2);
+		assertEquals(3527, preset.width());
+		assertEquals(2351, preset.height());
+		assertTrue(ResolutionValidator.validate(preset.width(), preset.height(), ResolutionValidator.SOFT_EDGE_LIMIT).valid());
+		assertTrue(CameraModePresetSet.PRESETS.stream().anyMatch(p -> "3:2 4K".equals(p.label())));
+	}
 }

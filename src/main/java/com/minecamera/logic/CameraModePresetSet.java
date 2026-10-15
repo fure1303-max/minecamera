@@ -10,6 +10,7 @@ public final class CameraModePresetSet {
 		ResolutionPresets.standardPreset("16:9", 16, 9),
 		ResolutionPresets.standardPreset("21:9", 21, 9),
 		ResolutionPresets.maxPreset("16:9 4K", 16, 9),
+		ResolutionPresets.maxPreset("3:2 4K", 3, 2),
 		ResolutionPresets.maxPreset("1:1 4K", 1, 1)
 	);
 

@@ -28,6 +28,25 @@ public final class DisplayFrameStateLogic {
 		return updated;
 	}
 
+	public static Map<GridPoint, DisplayFrameState> removePhoto(
+		Map<GridPoint, DisplayFrameState> current,
+		GridPoint clicked
+	) {
+		DisplayFrameState state = current.get(clicked);
+		if (state == null || state.isEmpty()) {
+			return current;
+		}
+
+		Map<GridPoint, DisplayFrameState> updated = new HashMap<>(current);
+		GridPoint anchor = state.groupAnchor();
+		for (int dy = 0; dy < state.groupHeight(); dy++) {
+			for (int dx = 0; dx < state.groupWidth(); dx++) {
+				updated.remove(new GridPoint(anchor.x() + dx, anchor.y() + dy));
+			}
+		}
+		return updated;
+	}
+
 	public static Map<GridPoint, DisplayFrameState> repartition(
 		Set<GridPoint> occupied,
 		Map<GridPoint, DisplayFrameState> previous
