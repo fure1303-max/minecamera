@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "package": "com.minecamera.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CameraAccessor",
+    "GameRendererMixin",
+    "IrisHandRendererMixin",
+    "KeyboardInputMixin",
+    "MinecraftClientFramebufferAccessor",
+    "MinecraftClientInputMixin",
+    "MouseScrollMixin",
+    "WindowFramebufferOverrideMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:paper",
+    "minecraft:black_dye"
+  ],
+  "result": {
+    "id": "minecamera:film",
+    "count": 2
+  }
+}
